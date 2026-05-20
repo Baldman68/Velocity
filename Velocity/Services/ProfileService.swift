@@ -1,0 +1,114 @@
+import Foundation
+import Supabase
+
+@MainActor
+final class ProfileService {
+    private let client = SupabaseManager.shared.client
+
+    /// Fetch profile for current authenticated user
+    func fetchCurrentProfile() async throws -> Profile? {
+        guard let userId = client.auth.currentUser?.id.uuidString else { return nil }
+        let profiles: [Profile] = try await client
+            .from("profile")
+            .select()
+            .eq("userId", value: userId)
+            .limit(1)
+            .execute()
+            .value
+        return profiles.first
+    }
+
+    /// Fetch profile by ID
+    func fetchProfile(id: Int64) async throws -> Profile {
+        try await client
+            .from("profile")
+            .select()
+            .eq("id", value: String(id))
+            .single()
+            .execute()
+            .value
+    }
+
+    /// Fetch user's check-in rides with ride and park details
+    func fetchCheckIns(profileId: Int64, limit: Int = 20) async throws -> [ProfileRide] {
+        try await client
+            .from("profileRide")
+            .select("*, ride(*, park(*))")
+            .eq("profileId", value: String(profileId))
+            .order("createdDate", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+    }
+
+    /// Compute profile stats
+    func fetchStats(profileId: Int64) async throws -> ProfileStats {
+        // Get all check-ins with ride data
+        let checkIns: [ProfileRide] = try await client
+            .from("profileRide")
+            .select("*, ride(*, park(*))")
+            .eq("profileId", value: String(profileId))
+            .execute()
+            .value
+
+        let coasterCount = checkIns.count
+        let maxGForce = checkIns.compactMap { $0.ride?.gForce }.max() ?? 0
+        let parksVisited = Set(checkIns.compactMap { $0.ride?.parkId }).count
+
+        // Compute global rank (count profiles with more rides)
+        let allProfiles: [Profile] = try await client
+            .from("profile")
+            .select()
+            .execute()
+            .value
+
+        // For each profile, we need their ride count - simplified approach
+        var rank = 1
+        for profile in allProfiles where profile.id != profileId {
+            let count: [ProfileRide] = try await client
+                .from("profileRide")
+                .select("id")
+                .eq("profileId", value: String(profile.id))
+                .execute()
+                .value
+            if count.count > coasterCount { rank += 1 }
+        }
+
+        return ProfileStats(
+            coasterCount: coasterCount,
+            maxGForce: maxGForce,
+            parksVisited: parksVisited,
+            globalRank: rank
+        )
+    }
+
+    /// Fetch user's achievements
+    func fetchAchievements(profileId: Int64) async throws -> [ProfileAchievement] {
+        try await client
+            .from("profileAchievement")
+            .select("*, achievement(*)")
+            .eq("profileId", value: String(profileId))
+            .execute()
+            .value
+    }
+
+    /// Fetch all available achievements
+    func fetchAllAchievements() async throws -> [Achievement] {
+        try await client
+            .from("achievement")
+            .select()
+            .execute()
+            .value
+    }
+
+    /// Fetch subscription type
+    func fetchSubscription(id: Int64) async throws -> SubscriptionType {
+        try await client
+            .from("subscriptionType")
+            .select()
+            .eq("id", value: String(id))
+            .single()
+            .execute()
+            .value
+    }
+}
