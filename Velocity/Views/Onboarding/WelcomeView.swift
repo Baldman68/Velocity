@@ -63,17 +63,27 @@ struct WelcomeView: View {
         .onAppear { runLaunchSequence() }
     }
 
-    // MARK: - Top Branding
+    // MARK: - Top Branding (matches design: rocket icon + VELOCITY large, COASTER CHASER spaced below)
     private var topBranding: some View {
-        HStack(spacing: VelocitySpacing.xs) {
-            Image(systemName: "location.fill")
-                .font(.system(size: 28))
-                .foregroundStyle(Color.nitroBlue)
+        VStack(spacing: 6) {
+            HStack(spacing: VelocitySpacing.sm) {
+                Image("velocity_rocket")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                    .foregroundStyle(Color.nitroBlue)
 
-            Text("VELOCITY")
-                .font(.headlineLarge())
-                .foregroundStyle(Color.nitroBlue)
-                .tracking(-0.5)
+                Text("VELOCITY")
+                    .font(.headlineLarge())
+                    .foregroundStyle(Color.nitroBlue)
+                    .tracking(-0.5)
+            }
+
+            Text("COASTER CHASER")
+                .font(.labelCaps())
+                .foregroundStyle(Color.onSurfaceVariant)
+                .tracking(4)  // wide letter-spacing as shown in design
         }
     }
 

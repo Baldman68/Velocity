@@ -44,13 +44,23 @@ struct ProfileSetupView: View {
                 Spacer()
 
                 HStack(spacing: VelocitySpacing.xs) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 20))
+                    Image("velocity_rocket")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
                         .foregroundStyle(Color.nitroBlue)
-                    Text("COASTER CHASE")
-                        .font(.headlineLarge())
-                        .foregroundStyle(Color.nitroBlue)
-                        .tracking(-0.5)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("VELOCITY")
+                            .font(.headlineLarge())
+                            .foregroundStyle(Color.nitroBlue)
+                            .tracking(-0.5)
+                        Text("COASTER CHASER")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .tracking(2)
+                    }
                 }
 
                 Spacer()
@@ -202,7 +212,7 @@ struct ProfileSetupView: View {
             .opacity(showButton ? 1 : 0)
 
             // Terms
-            Text("BY CONTINUING, YOU AGREE TO THE COASTER CHASE PROTOCOL AND MISSION DIRECTIVES.")
+            Text("BY CONTINUING, YOU AGREE TO THE VELOCITY PROTOCOL AND MISSION DIRECTIVES.")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Color.onSurfaceVariant.opacity(0.5))
                 .multilineTextAlignment(.center)
@@ -322,7 +332,9 @@ struct ProfileSetupView: View {
                     .background(Circle().fill(Color.velocitySurfaceContainerLow))
                     .overlay(
                         Image(systemName: "plus")
-                            .font(.system(size: 20))
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
                             .foregroundStyle(Color.nitroBlue)
                     )
             }

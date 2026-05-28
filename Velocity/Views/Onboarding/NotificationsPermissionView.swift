@@ -9,6 +9,7 @@ struct NotificationsPermissionView: View {
     @State private var showText = false
     @State private var showButtons = false
     @State private var phoneFloat: CGFloat = 0
+    @State private var phoneTilt: Double = -2  // starts slanted left
     @State private var card1Pulse = false
 
     var body: some View {
@@ -25,10 +26,25 @@ struct NotificationsPermissionView: View {
                 .accessibilityLabel("Back")
 
                 Spacer()
-                Text("COASTER CHASE")
-                    .font(.headlineMedium())
-                    .foregroundStyle(Color.nitroBlue)
-                    .tracking(-0.5)
+                HStack(spacing: VelocitySpacing.xs) {
+                    Image("velocity_rocket")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .foregroundStyle(Color.nitroBlue)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("VELOCITY")
+                            .font(.headlineMedium())
+                            .foregroundStyle(Color.nitroBlue)
+                            .tracking(-0.5)
+                        Text("COASTER CHASER")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .tracking(2)
+                    }
+                }
                 Spacer()
                 Image(systemName: "person.circle")
                     .font(.system(size: 22))
@@ -37,15 +53,15 @@ struct NotificationsPermissionView: View {
             .padding(.horizontal, VelocitySpacing.edgeMargin)
             .frame(height: 56)
 
-            Spacer()
-
             // Floating phone mockup
             phoneMockup
                 .scaleEffect(showPhone ? 1 : 0.85)
                 .opacity(showPhone ? 1 : 0)
                 .offset(y: phoneFloat)
+                .rotationEffect(.degrees(phoneTilt))
+                .padding(.top, VelocitySpacing.md)
 
-            Spacer().frame(height: VelocitySpacing.xl)
+            Spacer().frame(height: VelocitySpacing.lg)
 
             // STAY IN THE LOOP
             VStack(spacing: VelocitySpacing.sm) {
@@ -58,12 +74,13 @@ struct NotificationsPermissionView: View {
                     .font(.bodyMedium())
                     .foregroundStyle(Color.onSurfaceVariant)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, VelocitySpacing.lg)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, VelocitySpacing.md)
             }
             .opacity(showText ? 1 : 0)
             .offset(y: showText ? 0 : 16)
 
-            Spacer().frame(height: VelocitySpacing.xl)
+            Spacer()
 
             // Buttons
             VStack(spacing: VelocitySpacing.md) {
@@ -235,9 +252,10 @@ struct NotificationsPermissionView: View {
         withAnimation(.easeOut(duration: 0.5).delay(0.8)) {
             showButtons = true
         }
-        // Floating phone
-        withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true).delay(0.5)) {
+        // Floating phone with tilt: starts slanted left (-2deg), slowly tilts right (+2deg)
+        withAnimation(.easeInOut(duration: 4.5).repeatForever(autoreverses: true).delay(0.5)) {
             phoneFloat = -10
+            phoneTilt = 2  // tilts from -2deg to +2deg
         }
         // Pulse first card
         withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.8)) {

@@ -24,10 +24,25 @@ struct LocationAccessView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Back")
 
-                Text("COASTER CHASE")
-                    .font(.headlineMedium())
-                    .foregroundStyle(Color.nitroBlue)
-                    .tracking(-0.5)
+                HStack(spacing: VelocitySpacing.xs) {
+                    Image("velocity_rocket")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .foregroundStyle(Color.nitroBlue)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("VELOCITY")
+                            .font(.headlineMedium())
+                            .foregroundStyle(Color.nitroBlue)
+                            .tracking(-0.5)
+                        Text("COASTER CHASER")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .tracking(2)
+                    }
+                }
                 Spacer()
                 Image(systemName: "questionmark.circle")
                     .font(.system(size: 22))
