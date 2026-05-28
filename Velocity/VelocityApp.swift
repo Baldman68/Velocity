@@ -9,10 +9,17 @@ import SwiftUI
 
 @main
 struct VelocityApp: App {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .preferredColorScheme(.dark)
+            if hasCompletedOnboarding {
+                MainTabView()
+                    .preferredColorScheme(.dark)
+            } else {
+                OnboardingContainerView(isOnboardingComplete: $hasCompletedOnboarding)
+                    .preferredColorScheme(.dark)
+            }
         }
     }
 }
