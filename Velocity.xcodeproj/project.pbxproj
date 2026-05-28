@@ -14,9 +14,22 @@
 		6DED98842FB3AF4900A42970 /* Velocity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Velocity.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6DA15CA52FC887B80000490D /* Exceptions for "Velocity" folder in "Velocity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6DED98832FB3AF4900A42970 /* Velocity */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6DED98862FB3AF4900A42970 /* Velocity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6DA15CA52FC887B80000490D /* Exceptions for "Velocity" folder in "Velocity" target */,
+			);
 			path = Velocity;
 			sourceTree = "<group>";
 		};
@@ -265,6 +278,8 @@
 				DEVELOPMENT_TEAM = 9RL45TUYNL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Velocity/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take a selfie to use as your avatar.  Take pictures of coasters.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -297,6 +312,8 @@
 				DEVELOPMENT_TEAM = 9RL45TUYNL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Velocity/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Take a selfie to use as your avatar.  Take pictures of coasters.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

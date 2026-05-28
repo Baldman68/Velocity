@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LocationAccessView: View {
+    var onBack: () -> Void
     var onEnable: () -> Void
     var onSkip: () -> Void
 
@@ -14,6 +15,15 @@ struct LocationAccessView: View {
         VStack(spacing: 0) {
             // Top bar
             HStack {
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.nitroBlue)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+
                 Text("COASTER CHASE")
                     .font(.headlineMedium())
                     .foregroundStyle(Color.nitroBlue)

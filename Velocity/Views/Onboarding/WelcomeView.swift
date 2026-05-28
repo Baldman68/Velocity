@@ -130,19 +130,12 @@ struct WelcomeView: View {
                     .shadow(color: Color.nitroBlue.opacity(0.4), radius: 16, y: 4)
                 }
 
-                // LOGIN / PARK MAP
-                HStack(spacing: VelocitySpacing.xl) {
-                    Button("LOGIN", action: onLogin)
-                        .font(.labelCaps())
-                        .foregroundStyle(Color.onSurfaceVariant)
-                        .tracking(0.96)
-
-                    Button("PARK MAP") {}
-                        .font(.labelCaps())
-                        .foregroundStyle(Color.onSurfaceVariant)
-                        .tracking(0.96)
-                }
-                .frame(maxWidth: .infinity)
+                // LOGIN
+                Button("LOGIN", action: onLogin)
+                    .font(.labelCaps())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .tracking(0.96)
+                    .frame(maxWidth: .infinity)
             }
             .padding(.top, VelocitySpacing.sm)
             .opacity(showButtons ? 1 : 0)

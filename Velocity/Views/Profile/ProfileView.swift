@@ -1,8 +1,12 @@
 import SwiftUI
 import MapKit
+import UIKit
 
 struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
+    @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
+    @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
+    @AppStorage("customAvatarImageData") private var customAvatarImageData = Data()
 
     var body: some View {
         NavigationStack {
@@ -57,18 +61,7 @@ struct ProfileView: View {
             }
 
             // Avatar
-            ZStack {
-                Circle()
-                    .fill(Color.velocitySurfaceContainerHighest)
-                    .frame(width: 88, height: 88)
-                    .overlay(
-                        Circle().stroke(Color.nitroBlue, lineWidth: 2)
-                    )
-
-                Text(viewModel.profile?.displayName.prefix(1).uppercased() ?? "?")
-                    .font(.headlineHero())
-                    .foregroundStyle(Color.nitroBlue)
-            }
+            profileAvatar
 
             // Name
             Text(viewModel.profile?.displayName.uppercased() ?? "LOADING...")
@@ -80,6 +73,35 @@ struct ProfileView: View {
                 .foregroundStyle(Color.onSurfaceVariant)
         }
         .padding(.horizontal, VelocitySpacing.edgeMargin)
+    }
+
+    private var profileAvatar: some View {
+        ZStack {
+            Circle()
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(width: 88, height: 88)
+
+            if usesCustomAvatar, let image = UIImage(data: customAvatarImageData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 88, height: 88)
+                    .clipShape(Circle())
+            } else if let image = UIImage(named: viewModel.profile?.avatarName ?? storedAvatarName) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 88, height: 88)
+                    .clipShape(Circle())
+            } else {
+                Text(viewModel.profile?.displayName.prefix(1).uppercased() ?? "?")
+                    .font(.headlineHero())
+                    .foregroundStyle(Color.nitroBlue)
+            }
+        }
+        .overlay(
+            Circle().stroke(Color.nitroBlue, lineWidth: 2)
+        )
     }
 
     // MARK: - Stats Grid

@@ -10,6 +10,7 @@ enum OnboardingStep: Int, CaseIterable {
 
 struct OnboardingContainerView: View {
     @State private var currentStep: OnboardingStep = .welcome
+    @State private var isMovingForward = true
     @Binding var isOnboardingComplete: Bool
 
     var body: some View {
@@ -34,24 +35,26 @@ struct OnboardingContainerView: View {
                         )
                     case .location:
                         LocationAccessView(
+                            onBack: { retreat() },
                             onEnable: { advance() },
                             onSkip: { advance() }
                         )
                     case .notifications:
                         NotificationsPermissionView(
+                            onBack: { retreat() },
                             onEnable: { advance() },
                             onSkip: { advance() }
                         )
                     case .profileSetup:
-                        ProfileSetupView(onContinue: { advance() })
+                        ProfileSetupView(
+                            onBack: { retreat() },
+                            onContinue: { advance() }
+                        )
                     case .allSet:
                         AllSetView(onEnterPark: { isOnboardingComplete = true })
                     }
                 }
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
+                .transition(stepTransition)
             }
         }
         .animation(.easeInOut(duration: 0.35), value: currentStep)
@@ -69,10 +72,26 @@ struct OnboardingContainerView: View {
         }
     }
 
+    private var stepTransition: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: isMovingForward ? .trailing : .leading).combined(with: .opacity),
+            removal: .move(edge: isMovingForward ? .leading : .trailing).combined(with: .opacity)
+        )
+    }
+
     private func advance() {
         let allCases = OnboardingStep.allCases
         guard let idx = allCases.firstIndex(of: currentStep),
               allCases.index(after: idx) < allCases.endIndex else { return }
+        isMovingForward = true
         currentStep = allCases[allCases.index(after: idx)]
+    }
+
+    private func retreat() {
+        let allCases = OnboardingStep.allCases
+        guard let idx = allCases.firstIndex(of: currentStep),
+              idx > allCases.startIndex else { return }
+        isMovingForward = false
+        currentStep = allCases[allCases.index(before: idx)]
     }
 }

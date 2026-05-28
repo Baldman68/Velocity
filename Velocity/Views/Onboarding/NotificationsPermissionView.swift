@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NotificationsPermissionView: View {
+    var onBack: () -> Void
     var onEnable: () -> Void
     var onSkip: () -> Void
 
@@ -14,9 +15,15 @@ struct NotificationsPermissionView: View {
         VStack(spacing: 0) {
             // Top bar
             HStack {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Color.nitroBlue)
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.nitroBlue)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+
                 Spacer()
                 Text("COASTER CHASE")
                     .font(.headlineMedium())
