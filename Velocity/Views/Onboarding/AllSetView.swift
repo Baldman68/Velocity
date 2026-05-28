@@ -3,220 +3,263 @@ import SwiftUI
 struct AllSetView: View {
     var onEnterPark: () -> Void
 
-    @State private var showCheck = false
-    @State private var showRing1 = false
-    @State private var showRing2 = false
-    @State private var showContent = false
+    @State private var showCircle = false
+    @State private var showBadge = false
+    @State private var showText = false
     @State private var showButton = false
-    @State private var statusPulse = false
-    @State private var particles: [Particle] = []
+    @State private var sparks: [Spark] = []
+    @State private var sparkTimer: Timer?
 
     var body: some View {
         ZStack {
-            // Particle layer
-            ForEach(particles) { particle in
+            // Velocity diagonal pattern background
+            diagonalPattern
+                .ignoresSafeArea()
+
+            // Gradient overlay
+            LinearGradient(
+                colors: [Color.velocityBackground, .clear, .clear, Color.velocityBackground],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+            .opacity(0.8)
+            .ignoresSafeArea()
+
+            // Spark particles
+            ForEach(sparks) { spark in
                 Circle()
-                    .fill(particle.color)
-                    .frame(width: particle.size, height: particle.size)
-                    .offset(x: particle.x, y: particle.y)
-                    .opacity(particle.opacity)
+                    .fill(Color.nitroBlueDim)
+                    .frame(width: spark.size, height: spark.size)
+                    .blur(radius: 1)
+                    .position(x: spark.x, y: spark.y)
+                    .opacity(spark.opacity)
             }
 
+            // Main content
             VStack(spacing: 0) {
                 Spacer()
 
-                // Verified badge
-                Text("Profile Verified")
-                    .font(.labelCaps())
-                    .foregroundStyle(Color.nitroBlue)
-                    .tracking(1.5)
-                    .padding(.horizontal, VelocitySpacing.md)
-                    .padding(.vertical, VelocitySpacing.xs)
-                    .background(
-                        Capsule().fill(Color.nitroBlue.opacity(0.12))
-                    )
-                    .opacity(showContent ? 1 : 0)
-                    .padding(.bottom, VelocitySpacing.lg)
+                // Large visual circle with coaster loop image
+                visualCircle
+                    .scaleEffect(showCircle ? 1 : 0.5)
+                    .opacity(showCircle ? 1 : 0)
 
-                // Checkmark with radiating rings
-                ZStack {
-                    // Ring 2 (outer)
-                    Circle()
-                        .stroke(Color.nitroBlue.opacity(0.08), lineWidth: 2)
-                        .frame(width: 160, height: 160)
-                        .scaleEffect(showRing2 ? 1.0 : 0.5)
-                        .opacity(showRing2 ? 1 : 0)
+                Spacer().frame(height: VelocitySpacing.lg)
 
-                    // Ring 1 (inner)
-                    Circle()
-                        .stroke(Color.nitroBlue.opacity(0.15), lineWidth: 2)
-                        .frame(width: 120, height: 120)
-                        .scaleEffect(showRing1 ? 1.0 : 0.5)
-                        .opacity(showRing1 ? 1 : 0)
+                // Typography
+                VStack(spacing: VelocitySpacing.sm) {
+                    Text("READY FOR LAUNCH")
+                        .font(.headlineLarge())
+                        .foregroundStyle(Color.nitroBlue)
+                        .tracking(-0.5)
 
-                    // Main check circle
-                    ZStack {
-                        Circle()
-                            .fill(LinearGradient.nitroGradient)
-                            .frame(width: 88, height: 88)
-                            .shadow(color: Color.nitroBlue.opacity(0.5), radius: 20)
-
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                    .scaleEffect(showCheck ? 1.0 : 0)
+                    Text("Your profile is locked in. It's time to chase the coaster count.")
+                        .font(.bodyLarge())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 280)
                 }
-                .padding(.bottom, VelocitySpacing.xl)
+                .opacity(showText ? 1 : 0)
+                .offset(y: showText ? 0 : 16)
 
-                // READY FOR LAUNCH
-                Text("READY FOR\nLAUNCH")
-                    .font(.headlineHero())
-                    .foregroundStyle(Color.onSurface)
-                    .multilineTextAlignment(.center)
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 16)
+                Spacer().frame(height: VelocitySpacing.xl)
 
-                // Description
-                Text("Your profile is locked in. It's time to chase the coaster count.")
-                    .font(.bodyMedium())
-                    .foregroundStyle(Color.onSurfaceVariant)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.top, VelocitySpacing.sm)
-                    .padding(.horizontal, VelocitySpacing.lg)
-                    .opacity(showContent ? 1 : 0)
-                    .offset(y: showContent ? 0 : 12)
+                // Action area
+                VStack(spacing: VelocitySpacing.md) {
+                    Button(action: onEnterPark) {
+                        HStack(spacing: VelocitySpacing.sm) {
+                            Text("Enter the Park")
+                                .font(.labelCaps())
+                                .tracking(0.96)
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(Color.onNitroBlueContainer)
+                        .frame(maxWidth: 260)
+                        .padding(.vertical, VelocitySpacing.md)
+                        .background(Color.nitroBlue)
+                        .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                        .shadow(color: Color.nitroBlue.opacity(0.4), radius: 20)
+                    }
 
-                Spacer()
+                    // "System Optimal" with flanking dividers
+                    HStack(spacing: VelocitySpacing.md) {
+                        Rectangle()
+                            .fill(Color.velocityOutlineVariant)
+                            .frame(width: 32, height: 1)
 
-                // Enter the Park button
-                Button(action: onEnterPark) {
-                    HStack(spacing: VelocitySpacing.xs) {
-                        Text("Enter the Park")
+                        Text("System Optimal")
                             .font(.labelCaps())
-                            .tracking(1.5)
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .tracking(0.96)
+
+                        Rectangle()
+                            .fill(Color.velocityOutlineVariant)
+                            .frame(width: 32, height: 1)
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, VelocitySpacing.md)
-                    .background(LinearGradient.nitroGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
-                    .shadow(color: Color.nitroBlue.opacity(0.4), radius: 12, y: 4)
+                    .opacity(0.6)
                 }
-                .padding(.horizontal, VelocitySpacing.edgeMargin)
                 .opacity(showButton ? 1 : 0)
                 .offset(y: showButton ? 0 : 20)
 
-                // System Optimal status
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.nitroBlue)
-                        .frame(width: 6, height: 6)
-                        .opacity(statusPulse ? 1 : 0.4)
-
-                    Text("System Optimal")
-                        .font(.labelCaps())
-                        .foregroundStyle(Color.onSurfaceVariant)
-                        .tracking(0.96)
-                }
-                .padding(.top, VelocitySpacing.md)
-                .padding(.bottom, VelocitySpacing.xl)
-                .opacity(showButton ? 1 : 0)
+                Spacer()
             }
         }
         .onAppear { runCelebration() }
+        .onDisappear { sparkTimer?.invalidate() }
+    }
+
+    // MARK: - Visual Circle (matches design: full circle, coaster loop image, screen blend, gradient tint, verified badge)
+    private var visualCircle: some View {
+        ZStack {
+            // The large glassmorphic circle
+            Circle()
+                .fill(Color.velocitySurfaceContainerLow.opacity(0.4))
+                .frame(width: 280, height: 280)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+                .overlay(
+                    // Coaster loop image inside circle
+                    Image("onboarding_allset_loop")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 280, height: 280)
+                        .opacity(0.6)
+                        .blendMode(.screen)
+                        .clipShape(Circle())
+                )
+                .overlay(
+                    // Gradient tint overlay
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.nitroBlue.opacity(0.2), .clear],
+                                startPoint: .topTrailing,
+                                endPoint: .bottomLeading
+                            )
+                        )
+                )
+
+            // "Profile Verified" badge — rotated 12deg, top-right
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 16))
+                Text("Profile Verified")
+                    .font(.labelCaps())
+                    .tracking(0.96)
+            }
+            .foregroundStyle(Color.onNitroBlueContainer)
+            .padding(.horizontal, VelocitySpacing.sm)
+            .padding(.vertical, VelocitySpacing.xs)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .fill(Color.nitroBlue)
+                    .shadow(color: Color.nitroBlue.opacity(0.3), radius: 8, y: 4)
+            )
+            .rotationEffect(.degrees(12))
+            .offset(x: 80, y: -110)
+            .scaleEffect(showBadge ? 1 : 0)
+        }
+    }
+
+    // MARK: - Diagonal Pattern
+    private var diagonalPattern: some View {
+        Canvas { context, size in
+            let spacing: CGFloat = 100
+            let lineWidth: CGFloat = 1
+            let color = Color.white.opacity(0.03)
+
+            var x: CGFloat = -size.height
+            while x < size.width + size.height {
+                var path = Path()
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x + size.height, y: size.height))
+                context.stroke(path, with: .color(color), lineWidth: lineWidth)
+                x += spacing
+            }
+        }
+        .opacity(0.2)
     }
 
     // MARK: - Celebration Animation
     private func runCelebration() {
-        // Checkmark bounce in
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.55).delay(0.1)) {
-            showCheck = true
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.65).delay(0.1)) {
+            showCircle = true
         }
-        // Inner ring expands
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3)) {
-            showRing1 = true
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.5)) {
+            showBadge = true
         }
-        // Outer ring expands
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.45)) {
-            showRing2 = true
-        }
-        // Burst particles at peak
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            spawnParticles()
-        }
-        // Content fades in
         withAnimation(.easeOut(duration: 0.5).delay(0.7)) {
-            showContent = true
+            showText = true
         }
-        // Button slides up
         withAnimation(.easeOut(duration: 0.5).delay(1.0)) {
             showButton = true
         }
-        // Pulsing status dot
-        withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true).delay(1.2)) {
-            statusPulse = true
+
+        // Continuous spark generation (matches design's JS spark-float animation)
+        startSparks()
+    }
+
+    private func startSparks() {
+        // Initial burst
+        for _ in 0..<15 {
+            addSpark()
+        }
+        // Continuous generation
+        sparkTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
+            addSpark()
         }
     }
 
-    // MARK: - Particle Burst
-    private func spawnParticles() {
-        let colors: [Color] = [.nitroBlue, .pulseOrange, .nitroBlueLight, .pulseOrangeLight]
-        var newParticles: [Particle] = []
+    private func addSpark() {
+        let screenWidth = UIScreen.main.bounds.width
+        let centerX = screenWidth / 2
+        let centerY: CGFloat = 300 // approximate circle center
 
-        for i in 0..<20 {
-            let angle = Double(i) / 20.0 * 2 * .pi
-            let distance = CGFloat.random(in: 60...140)
-            newParticles.append(Particle(
-                id: i,
-                x: 0, y: 0,
-                targetX: cos(angle) * distance,
-                targetY: sin(angle) * distance,
-                size: CGFloat.random(in: 4...8),
-                color: colors.randomElement()!,
-                opacity: 1
-            ))
+        let spark = Spark(
+            id: UUID(),
+            x: centerX + CGFloat.random(in: -140...140),
+            y: centerY + CGFloat.random(in: -140...140),
+            size: CGFloat.random(in: 3...6),
+            opacity: 0
+        )
+        sparks.append(spark)
+
+        let idx = sparks.count - 1
+        let duration = 1.0 + Double.random(in: 0...2)
+
+        // Animate: fade in, float up, fade out
+        withAnimation(.easeOut(duration: duration * 0.5)) {
+            if idx < sparks.count {
+                sparks[idx].opacity = 1
+            }
         }
-
-        particles = newParticles
-
-        // Animate particles outward
-        withAnimation(.easeOut(duration: 0.6)) {
-            particles = particles.map { p in
-                var updated = p
-                updated.x = p.targetX
-                updated.y = p.targetY
-                return updated
+        withAnimation(.easeIn(duration: duration * 0.5).delay(duration * 0.5)) {
+            if idx < sparks.count {
+                sparks[idx].y -= 100
+                sparks[idx].opacity = 0
             }
         }
 
-        // Fade particles out
-        withAnimation(.easeIn(duration: 0.4).delay(0.5)) {
-            particles = particles.map { p in
-                var updated = p
-                updated.opacity = 0
-                return updated
-            }
-        }
-
-        // Remove particles after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            particles = []
+        // Remove after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.1) {
+            sparks.removeAll { $0.id == spark.id }
         }
     }
 }
 
-// MARK: - Particle Model
-struct Particle: Identifiable {
-    let id: Int
+// MARK: - Spark Model
+struct Spark: Identifiable {
+    let id: UUID
     var x: CGFloat
     var y: CGFloat
-    var targetX: CGFloat = 0
-    var targetY: CGFloat = 0
     var size: CGFloat
-    var color: Color
     var opacity: Double
 }

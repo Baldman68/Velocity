@@ -4,92 +4,82 @@ struct NotificationsPermissionView: View {
     var onEnable: () -> Void
     var onSkip: () -> Void
 
-    @State private var showCard1 = false
-    @State private var showCard2 = false
-    @State private var showContent = false
+    @State private var showPhone = false
+    @State private var showText = false
     @State private var showButtons = false
-    @State private var bellShake = false
+    @State private var phoneFloat: CGFloat = 0
+    @State private var card1Pulse = false
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer()
-
-            // Preview notification cards
-            VStack(spacing: VelocitySpacing.sm) {
-                // Leaderboard Update card
-                notificationCard(
-                    icon: "location.fill",
-                    iconColor: Color.nitroBlue,
-                    tag: "LEADERBOARD UPDATE",
-                    message: "You've been overtaken on the leaderboard! Racer_X just set a new record on Nitro Fury."
-                )
-                .offset(x: showCard1 ? 0 : -300)
-                .opacity(showCard1 ? 1 : 0)
-
-                // Ride Alert card
-                notificationCard(
-                    icon: "bell.fill",
-                    iconColor: Color.pulseOrange,
-                    tag: "RIDE ALERT",
-                    message: "Iron Menace wait time decreased to 15 mins."
-                )
-                .offset(x: showCard2 ? 0 : 300)
-                .opacity(showCard2 ? 1 : 0)
+            // Top bar
+            HStack {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.nitroBlue)
+                Spacer()
+                Text("COASTER CHASE")
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.nitroBlue)
+                    .tracking(-0.5)
+                Spacer()
+                Image(systemName: "person.circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.nitroBlue)
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
+            .frame(height: 56)
+
+            Spacer()
+
+            // Floating phone mockup
+            phoneMockup
+                .scaleEffect(showPhone ? 1 : 0.85)
+                .opacity(showPhone ? 1 : 0)
+                .offset(y: phoneFloat)
 
             Spacer().frame(height: VelocitySpacing.xl)
 
-            // Bell icon with shake
-            Image(systemName: "bell.badge.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.nitroBlue)
-                .rotationEffect(.degrees(bellShake ? 10 : 0), anchor: .top)
-                .opacity(showContent ? 1 : 0)
-                .padding(.bottom, VelocitySpacing.md)
-
             // STAY IN THE LOOP
-            Text("STAY IN THE LOOP")
-                .font(.headlineHero())
-                .foregroundStyle(Color.onSurface)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 16)
+            VStack(spacing: VelocitySpacing.sm) {
+                Text("STAY IN THE LOOP")
+                    .font(.headlineLarge())
+                    .foregroundStyle(Color.nitroBlue)
+                    .tracking(-0.5)
 
-            // Description
-            Text("Get alerts for ride status changes, leaderboard updates, and friend challenges. Never miss a thrill.")
-                .font(.bodyMedium())
-                .foregroundStyle(Color.onSurfaceVariant)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-                .padding(.top, VelocitySpacing.sm)
-                .padding(.horizontal, VelocitySpacing.lg)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 12)
+                Text("Get alerts for ride status changes, leaderboard updates, and friend challenges. Never miss a thrill.")
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, VelocitySpacing.lg)
+            }
+            .opacity(showText ? 1 : 0)
+            .offset(y: showText ? 0 : 16)
 
-            Spacer()
+            Spacer().frame(height: VelocitySpacing.xl)
 
             // Buttons
             VStack(spacing: VelocitySpacing.md) {
                 Button(action: onEnable) {
                     HStack(spacing: VelocitySpacing.xs) {
                         Image(systemName: "bell.badge.fill")
-                            .font(.system(size: 16))
+                            .font(.system(size: 18))
                         Text("Turn on Notifications")
-                            .font(.labelCaps())
-                            .tracking(1.5)
+                            .font(.headlineMedium())
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.onNitroBlueContainer)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, VelocitySpacing.md)
-                    .background(LinearGradient.nitroGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
-                    .shadow(color: Color.nitroBlue.opacity(0.4), radius: 12, y: 4)
+                    .background(Color.nitroBlue)
+                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                    .shadow(color: Color.nitroBlue.opacity(0.4), radius: 20)
                 }
 
                 Button("Skip for now", action: onSkip)
                     .font(.labelCaps())
                     .foregroundStyle(Color.onSurfaceVariant)
-                    .tracking(1)
+                    .tracking(0.96)
+                    .padding(.vertical, VelocitySpacing.xs)
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
             .padding(.bottom, VelocitySpacing.xl)
@@ -99,80 +89,152 @@ struct NotificationsPermissionView: View {
         .onAppear { runEntrance() }
     }
 
-    // MARK: - Notification Card
-    private func notificationCard(icon: String, iconColor: Color, tag: String, message: String) -> some View {
-        HStack(alignment: .top, spacing: VelocitySpacing.sm) {
-            // Icon
-            ZStack {
-                Circle()
-                    .fill(iconColor.opacity(0.15))
-                    .frame(width: 40, height: 40)
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundStyle(iconColor)
-            }
+    // MARK: - Phone Mockup (matches design: rounded-[40px], 6px border, notch, bg image, notification cards)
+    private var phoneMockup: some View {
+        ZStack {
+            // Glow behind phone
+            Circle()
+                .fill(Color.nitroBlue.opacity(0.1))
+                .blur(radius: 60)
+                .frame(width: 300, height: 300)
 
-            VStack(alignment: .leading, spacing: VelocitySpacing.base) {
+            // Phone frame
+            RoundedRectangle(cornerRadius: 40)
+                .fill(Color.velocitySurfaceContainerLowest)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 40)
+                        .stroke(Color.velocitySurfaceContainerHighest, lineWidth: 6)
+                )
+                .frame(width: 220, height: 420)
+                .overlay(
+                    ZStack {
+                        // Background image inside phone
+                        Image("onboarding_notifications_bg")
+                            .resizable()
+                            .scaledToFill()
+                            .opacity(0.6)
+                            .frame(width: 208, height: 408)
+                            .clipShape(RoundedRectangle(cornerRadius: 34))
+
+                        // Gradient overlay inside phone
+                        LinearGradient(
+                            colors: [.clear, Color.velocityBackground.opacity(0.4), Color.velocityBackground],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 34))
+
+                        // Notch
+                        VStack {
+                            Capsule()
+                                .fill(Color.velocitySurfaceContainerHighest)
+                                .frame(width: 80, height: 24)
+                                .offset(y: 6)
+                            Spacer()
+                        }
+
+                        // Notification cards inside phone
+                        VStack(spacing: 10) {
+                            // Leaderboard Update card (with orange left border, pulsing)
+                            notificationCard(
+                                icon: "location.fill",
+                                iconColor: Color.pulseOrange,
+                                tag: "LEADERBOARD UPDATE",
+                                tagColor: Color.onSurfaceVariant,
+                                message: "You've been overtaken! **Racer_X** set a new record on Nitro Fury.",
+                                accentBorder: Color.pulseOrange,
+                                isPulsing: true
+                            )
+                            .opacity(card1Pulse ? 1 : 0.8)
+
+                            // Ride Alert card (dimmer)
+                            notificationCard(
+                                icon: "bell",
+                                iconColor: Color.nitroBlue,
+                                tag: "RIDE ALERT",
+                                tagColor: Color.onSurfaceVariant,
+                                message: "Iron Menace wait time decreased to 15 mins.",
+                                accentBorder: nil,
+                                isPulsing: false
+                            )
+                            .opacity(0.6)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.top, 60)
+                        .frame(width: 208, alignment: .top)
+
+                        Spacer()
+                    }
+                    .frame(width: 208, height: 408)
+                    .clipShape(RoundedRectangle(cornerRadius: 34))
+                )
+        }
+    }
+
+    // MARK: - Notification Card (inside phone)
+    private func notificationCard(icon: String, iconColor: Color, tag: String, tagColor: Color, message: String, accentBorder: Color?, isPulsing: Bool) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(iconColor)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(tag)
-                    .font(.labelCaps())
-                    .foregroundStyle(iconColor)
-                    .tracking(0.96)
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(tagColor)
+                    .tracking(0.6)
 
-                Text(message)
-                    .font(.bodySmall())
+                Text(.init(message))  // Markdown bold support
+                    .font(.system(size: 10))
                     .foregroundStyle(Color.onSurface)
-                    .lineSpacing(2)
+                    .lineSpacing(1)
             }
         }
-        .padding(VelocitySpacing.md)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: VelocityRadius.card)
-                .fill(Color.velocitySurfaceContainer)
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: VelocityRadius.card)
+                    RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.white.opacity(0.1), lineWidth: 1)
                 )
         )
+        .overlay(alignment: .leading) {
+            if let border = accentBorder {
+                Rectangle()
+                    .fill(border)
+                    .frame(width: 4)
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .padding(.vertical, 6)
+            }
+        }
     }
 
-    // MARK: - Entrance Animation
+    // MARK: - Entrance
     private func runEntrance() {
-        // Card 1 slides in from left
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.75).delay(0.1)) {
-            showCard1 = true
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.75).delay(0.1)) {
+            showPhone = true
         }
-        // Card 2 slides in from right
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.75).delay(0.35)) {
-            showCard2 = true
+        withAnimation(.easeOut(duration: 0.5).delay(0.5)) {
+            showText = true
         }
-        withAnimation(.easeOut(duration: 0.5).delay(0.6)) {
-            showContent = true
-        }
-        withAnimation(.easeOut(duration: 0.5).delay(0.9)) {
+        withAnimation(.easeOut(duration: 0.5).delay(0.8)) {
             showButtons = true
         }
-        // Bell shake sequence after content appears
-        runBellShake(after: 0.8)
-    }
-
-    private func runBellShake(after delay: Double) {
-        let baseDelay = delay
-        // Quick shake: right → left → right → center
-        DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay) {
-            withAnimation(.easeInOut(duration: 0.08)) { bellShake = true }
+        // Floating phone
+        withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true).delay(0.5)) {
+            phoneFloat = -10
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay + 0.08) {
-            withAnimation(.easeInOut(duration: 0.08)) { bellShake = false }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay + 0.16) {
-            withAnimation(.easeInOut(duration: 0.06)) { bellShake = true }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay + 0.22) {
-            withAnimation(.easeInOut(duration: 0.12)) { bellShake = false }
-        }
-        // Repeat every 3 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + baseDelay + 3.0) {
-            runBellShake(after: 0)
+        // Pulse first card
+        withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true).delay(0.8)) {
+            card1Pulse = true
         }
     }
 }

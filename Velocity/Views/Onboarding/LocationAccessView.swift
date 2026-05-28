@@ -4,66 +4,83 @@ struct LocationAccessView: View {
     var onEnable: () -> Void
     var onSkip: () -> Void
 
-    @State private var showMapArea = false
-    @State private var showContent = false
+    @State private var showIllustration = false
+    @State private var showText = false
     @State private var showButtons = false
     @State private var pinPulse = false
-    @State private var floatOffset: CGFloat = 0
+    @State private var chipBounce: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
+            // Top bar
+            HStack {
+                Text("COASTER CHASE")
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.nitroBlue)
+                    .tracking(-0.5)
+                Spacer()
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.nitroBlue)
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+            .frame(height: 56)
+
             Spacer()
 
-            // Map preview area with floating elements
-            mapPreviewArea
+            // Illustration container — square, rotated glass card with map image
+            illustrationArea
                 .padding(.horizontal, VelocitySpacing.edgeMargin)
-                .scaleEffect(showMapArea ? 1.0 : 0.9)
-                .opacity(showMapArea ? 1 : 0)
+                .scaleEffect(showIllustration ? 1.0 : 0.92)
+                .opacity(showIllustration ? 1 : 0)
 
             Spacer().frame(height: VelocitySpacing.xl)
 
-            // FIND YOUR RIDE
-            Text("FIND YOUR RIDE")
-                .font(.headlineHero())
-                .foregroundStyle(Color.onSurface)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 16)
+            // Text: FIND YOUR RIDE
+            VStack(spacing: VelocitySpacing.md) {
+                HStack(spacing: 8) {
+                    Text("FIND YOUR")
+                        .foregroundStyle(Color.onSurface)
+                    Text("RIDE")
+                        .foregroundStyle(Color.nitroBlue)
+                }
+                .font(.headlineLarge())
+                .tracking(-0.5)
 
-            // Description
-            Text("We use your location to automatically detect when you're at a park, enabling instant check-ins and live wait times.")
-                .font(.bodyMedium())
-                .foregroundStyle(Color.onSurfaceVariant)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-                .padding(.top, VelocitySpacing.sm)
-                .padding(.horizontal, VelocitySpacing.lg)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 12)
+                Text("We use your location to automatically detect when you're at a park, enabling **instant check-ins** and **live wait times**.")
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, VelocitySpacing.lg)
+            }
+            .opacity(showText ? 1 : 0)
+            .offset(y: showText ? 0 : 16)
 
             Spacer()
 
-            // Buttons
+            // Actions
             VStack(spacing: VelocitySpacing.md) {
                 Button(action: onEnable) {
-                    HStack(spacing: VelocitySpacing.xs) {
+                    HStack(spacing: VelocitySpacing.sm) {
                         Image(systemName: "location.fill")
-                            .font(.system(size: 16))
+                            .font(.system(size: 18))
                         Text("Enable Location")
                             .font(.labelCaps())
-                            .tracking(1.5)
+                            .tracking(2)
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.onNitroBlueContainer)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, VelocitySpacing.md)
-                    .background(LinearGradient.nitroGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
-                    .shadow(color: Color.nitroBlue.opacity(0.4), radius: 12, y: 4)
+                    .frame(height: 56)
+                    .background(Color.nitroBlue)
+                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                    .shadow(color: Color.nitroBlue.opacity(0.2), radius: 12, y: 4)
                 }
 
                 Button("Not Now", action: onSkip)
                     .font(.labelCaps())
                     .foregroundStyle(Color.onSurfaceVariant)
-                    .tracking(1)
+                    .tracking(2)
+                    .frame(height: 48)
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
             .padding(.bottom, VelocitySpacing.xl)
@@ -73,98 +90,108 @@ struct LocationAccessView: View {
         .onAppear { runEntrance() }
     }
 
-    // MARK: - Map Preview Area
-    private var mapPreviewArea: some View {
+    // MARK: - Illustration Area
+    private var illustrationArea: some View {
         ZStack {
-            // Map background
-            RoundedRectangle(cornerRadius: VelocityRadius.card)
-                .fill(Color.velocitySurfaceContainerHigh)
-                .frame(height: 240)
+            // Rotated glass card with map image
+            RoundedRectangle(cornerRadius: 40)
+                .fill(Color.velocitySurfaceContainerLow.opacity(0.6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: VelocityRadius.card)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    Image("onboarding_location_map")
+                        .resizable()
+                        .scaledToFill()
+                        .opacity(0.6)
+                        .blendMode(.luminosity)
+                        .clipShape(RoundedRectangle(cornerRadius: 40))
                 )
+                .overlay(
+                    // Bottom gradient
+                    VStack {
+                        Spacer()
+                        LinearGradient(
+                            colors: [.clear, Color.velocityBackground],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 100)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 40))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 40)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .aspectRatio(1, contentMode: .fit)
+                .rotationEffect(.degrees(3))
+                .scaleEffect(0.95)
 
-            // Subtle grid lines to simulate map
-            VStack(spacing: 20) {
-                ForEach(0..<6, id: \.self) { _ in
-                    Rectangle()
-                        .fill(Color.velocityOutlineVariant.opacity(0.15))
-                        .frame(height: 1)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.card))
-
-            // Pulsing location pin
-            VStack(spacing: 0) {
+            // Current Location card (centered, offset up-left)
+            HStack(spacing: VelocitySpacing.md) {
+                // Pulsing marker
                 ZStack {
-                    // Pulse rings
                     Circle()
-                        .stroke(Color.pulseOrange.opacity(0.2), lineWidth: 2)
-                        .frame(width: 60, height: 60)
-                        .scaleEffect(pinPulse ? 1.8 : 1.0)
+                        .fill(Color.nitroBlueDim.opacity(0.3))
+                        .frame(width: 48, height: 48)
+                        .scaleEffect(pinPulse ? 2.5 : 1)
                         .opacity(pinPulse ? 0 : 0.6)
 
                     Circle()
-                        .stroke(Color.pulseOrange.opacity(0.3), lineWidth: 2)
-                        .frame(width: 40, height: 40)
-                        .scaleEffect(pinPulse ? 1.5 : 1.0)
-                        .opacity(pinPulse ? 0 : 0.8)
+                        .fill(Color.nitroBlueLight)
+                        .frame(width: 18, height: 18)
+                        .shadow(color: Color.nitroBlueDim.opacity(0.8), radius: 10)
+                }
 
-                    // Pin dot
-                    Circle()
-                        .fill(Color.pulseOrange)
-                        .frame(width: 16, height: 16)
-                        .shadow(color: Color.pulseOrange.opacity(0.6), radius: 8)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Current Location")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.nitroBlue)
+                        .tracking(0.96)
+                    Text("Cedar Point")
+                        .font(.statValue())
+                        .foregroundStyle(.white)
                 }
             }
-
-            // Floating park card (top-left)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Current Location")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Color.onSurfaceVariant)
-                Text("Cedar Point")
-                    .font(.labelCaps())
-                    .foregroundStyle(Color.onSurface)
-                    .tracking(0.96)
-            }
-            .padding(.horizontal, VelocitySpacing.sm)
-            .padding(.vertical, VelocitySpacing.xs)
+            .padding(VelocitySpacing.md)
             .background(
-                RoundedRectangle(cornerRadius: VelocityRadius.component)
-                    .fill(Color.velocitySurfaceContainer)
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.6))
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .dark)
+                    )
                     .overlay(
-                        RoundedRectangle(cornerRadius: VelocityRadius.component)
-                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.nitroBlue.opacity(0.2), lineWidth: 1)
                     )
             )
-            .offset(x: -70, y: -70)
-            .offset(y: floatOffset)
+            .offset(x: -10, y: -20)
 
-            // Floating wait time chip (top-right)
-            HStack(spacing: 4) {
+            // "5m Wait" chip (top-right)
+            HStack(spacing: 6) {
                 Image(systemName: "timer")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.pulseOrange)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.nitroBlue)
                 Text("5m Wait")
                     .font(.labelCaps())
                     .foregroundStyle(Color.onSurface)
                     .tracking(0.96)
             }
             .padding(.horizontal, VelocitySpacing.sm)
-            .padding(.vertical, VelocitySpacing.xs)
+            .padding(.vertical, 6)
             .background(
-                Capsule().fill(Color.velocitySurfaceContainer)
-                    .overlay(Capsule().stroke(Color.pulseOrange.opacity(0.3), lineWidth: 1))
+                Capsule()
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.6))
+                    .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                    .overlay(Capsule().stroke(Color.nitroBlue.opacity(0.1), lineWidth: 1))
             )
-            .offset(x: 80, y: -60)
-            .offset(y: -floatOffset)
+            .offset(x: 90, y: -100)
+            .offset(y: chipBounce)
 
-            // Floating ride chip (bottom)
+            // "Millennium Force" chip (bottom-left)
             HStack(spacing: 6) {
                 Image(systemName: "location.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 12))
                     .foregroundStyle(Color.nitroBlue)
                 Text("Millennium Force")
                     .font(.labelCaps())
@@ -172,34 +199,33 @@ struct LocationAccessView: View {
                     .tracking(0.96)
             }
             .padding(.horizontal, VelocitySpacing.sm)
-            .padding(.vertical, VelocitySpacing.xs)
+            .padding(.vertical, 6)
             .background(
-                Capsule().fill(Color.velocitySurfaceContainer)
-                    .overlay(Capsule().stroke(Color.nitroBlue.opacity(0.3), lineWidth: 1))
+                Capsule()
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.6))
+                    .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                    .overlay(Capsule().stroke(Color.nitroBlue.opacity(0.1), lineWidth: 1))
             )
-            .offset(x: 20, y: 80)
-            .offset(y: floatOffset * 0.7)
+            .offset(x: -60, y: 110)
         }
     }
 
-    // MARK: - Entrance Animation
+    // MARK: - Entrance
     private func runEntrance() {
-        withAnimation(.spring(response: 0.7, dampingFraction: 0.8)) {
-            showMapArea = true
+        withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.1)) {
+            showIllustration = true
         }
-        withAnimation(.easeOut(duration: 0.5).delay(0.3)) {
-            showContent = true
+        withAnimation(.easeOut(duration: 0.5).delay(0.4)) {
+            showText = true
         }
-        withAnimation(.easeOut(duration: 0.5).delay(0.6)) {
+        withAnimation(.easeOut(duration: 0.5).delay(0.7)) {
             showButtons = true
         }
-        // Continuous pin pulse
-        withAnimation(.easeOut(duration: 1.5).repeatForever(autoreverses: false).delay(0.5)) {
+        withAnimation(.easeOut(duration: 2.5).repeatForever(autoreverses: false).delay(0.5)) {
             pinPulse = true
         }
-        // Gentle float for chips
-        withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true).delay(0.8)) {
-            floatOffset = 6
+        withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true).delay(0.8)) {
+            chipBounce = -8
         }
     }
 }
