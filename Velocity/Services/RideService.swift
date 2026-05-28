@@ -5,26 +5,38 @@ import Supabase
 final class RideService {
     private let client = SupabaseManager.shared.client
 
-    /// Fetch trending rides (highest rated with reviews)
+    /// Fetch trending rides (fastest/tallest coasters with data)
     func fetchTrending(limit: Int = 10) async throws -> [Ride] {
         try await client
             .from("ride")
             .select("*, park(*)")
-            .not("numberOfStars", operator: .is, value: "null")
-            .not("numberOfReviews", operator: .is, value: "null")
-            .order("numberOfStars", ascending: false)
+            .not("speed", operator: .is, value: "null")
+            .order("speed", ascending: false)
             .limit(limit)
             .execute()
             .value
     }
 
-    /// Fetch top rated rides worldwide
+    /// Fetch top rated rides worldwide (by star rating, falling back to speed)
     func fetchTopRated(limit: Int = 20) async throws -> [Ride] {
-        try await client
+        // First try rides with ratings
+        let rated: [Ride] = try await client
             .from("ride")
             .select("*, park(*)")
             .not("numberOfStars", operator: .is, value: "null")
             .order("numberOfStars", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+
+        if !rated.isEmpty { return rated }
+
+        // Fallback: fastest rides as proxy for "top"
+        return try await client
+            .from("ride")
+            .select("*, park(*)")
+            .not("speed", operator: .is, value: "null")
+            .order("speed", ascending: false)
             .limit(limit)
             .execute()
             .value
