@@ -3,6 +3,11 @@ import PhotosUI
 import Supabase
 import UIKit
 
+private enum ProfileSetupField: Hashable {
+    case firstName
+    case username
+}
+
 struct ProfileSetupView: View {
     var onBack: () -> Void
     var onContinue: () -> Void
@@ -21,12 +26,31 @@ struct ProfileSetupView: View {
     @State private var showContent = false
     @State private var showForm = false
     @State private var showButton = false
+    @State private var currentUsernameSuffix: String?
+    @FocusState private var focusedField: ProfileSetupField?
 
     @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
     @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
     @AppStorage("customAvatarImageData") private var customAvatarImageData = Data()
 
     private let avatarNames = ["avatar00", "avatar01", "avatar02", "avatar03", "avatar04"]
+    private let usernameSuffixes = [
+        "CoasterChaser",
+        "SkyDiver",
+        "LoopDeLooper",
+        "AirtimeAce",
+        "DropZoneDynamo",
+        "LaunchLunatic",
+        "CorkscrewCaptain",
+        "GForceGiggle",
+        "LiftHillLegend",
+        "InversionInspector",
+        "BrakeRunBandit",
+        "QueueSkipper",
+        "TrackTornado",
+        "LapBarHero",
+        "ZeroGZigzagger"
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -135,6 +159,11 @@ struct ProfileSetupView: View {
                 await loadSelectedPhoto(from: newItem)
             }
         }
+        .onChange(of: focusedField) { oldValue, newValue in
+            if oldValue == .firstName && newValue != .firstName {
+                assignRandomUsername()
+            }
+        }
         .onAppear {
             loadStoredAvatar()
 
@@ -173,9 +202,9 @@ struct ProfileSetupView: View {
 
             // Input fields
             VStack(spacing: VelocitySpacing.md) {
-                inputField(label: "FIRST NAME", icon: "person", placeholder: "Alex", text: $firstName)
+                firstNameField
                 VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
-                    inputField(label: "PUBLIC USERNAME", icon: "at", placeholder: "Alex CoasterChaser", text: $username)
+                    publicUsernameField
                     HStack(spacing: 6) {
                         Image(systemName: "info.circle")
                             .font(.system(size: 14))
@@ -341,6 +370,71 @@ struct ProfileSetupView: View {
         }
     }
 
+    private var firstNameField: some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+            Text("FIRST NAME")
+                .font(.labelCaps())
+                .foregroundStyle(Color.onSurfaceVariant)
+                .tracking(0.96)
+
+            HStack(spacing: VelocitySpacing.sm) {
+                Image(systemName: "person")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.velocityOutline)
+                    .frame(width: 20)
+
+                TextField("Alex", text: $firstName)
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurface)
+                    .focused($focusedField, equals: .firstName)
+                    .submitLabel(.next)
+                    .onSubmit {
+                        assignRandomUsername()
+                        focusedField = .username
+                    }
+            }
+            .padding(.horizontal, VelocitySpacing.md)
+            .padding(.vertical, VelocitySpacing.sm)
+            .background(inputFieldBackground)
+        }
+    }
+
+    private var publicUsernameField: some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+            Text("PUBLIC USERNAME")
+                .font(.labelCaps())
+                .foregroundStyle(Color.onSurfaceVariant)
+                .tracking(0.96)
+
+            HStack(spacing: VelocitySpacing.sm) {
+                Image(systemName: "at")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.velocityOutline)
+                    .frame(width: 20)
+
+                TextField("Alex CoasterChaser", text: $username)
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurface)
+                    .focused($focusedField, equals: .username)
+
+                Button {
+                    assignRandomUsername(excludingCurrentSuffix: true)
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(firstNameTrimmed.isEmpty ? Color.velocityOutlineVariant : Color.nitroBlue)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .disabled(firstNameTrimmed.isEmpty)
+                .accessibilityLabel("Refresh public username")
+            }
+            .padding(.horizontal, VelocitySpacing.md)
+            .padding(.vertical, VelocitySpacing.sm)
+            .background(inputFieldBackground)
+        }
+    }
+
     // MARK: - Input Field (matches design: surface-container-lowest bg, outline-variant border, nitro glow on focus)
     private func inputField(label: String, icon: String, placeholder: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
@@ -361,15 +455,38 @@ struct ProfileSetupView: View {
             }
             .padding(.horizontal, VelocitySpacing.md)
             .padding(.vertical, VelocitySpacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: VelocityRadius.component)
-                    .fill(Color.velocitySurfaceContainerLowest)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: VelocityRadius.component)
-                            .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
-                    )
-            )
+            .background(inputFieldBackground)
         }
+    }
+
+    private var inputFieldBackground: some View {
+        RoundedRectangle(cornerRadius: VelocityRadius.component)
+            .fill(Color.velocitySurfaceContainerLowest)
+            .overlay(
+                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                    .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
+            )
+    }
+
+    private var firstNameTrimmed: String {
+        firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func assignRandomUsername(excludingCurrentSuffix: Bool = false) {
+        guard !firstNameTrimmed.isEmpty else {
+            username = ""
+            currentUsernameSuffix = nil
+            return
+        }
+
+        var suffixes = usernameSuffixes
+        if excludingCurrentSuffix, let currentUsernameSuffix, suffixes.count > 1 {
+            suffixes.removeAll { $0 == currentUsernameSuffix }
+        }
+
+        guard let suffix = suffixes.randomElement() else { return }
+        currentUsernameSuffix = suffix
+        username = "\(firstNameTrimmed) \(suffix)"
     }
 
     private func loadStoredAvatar() {

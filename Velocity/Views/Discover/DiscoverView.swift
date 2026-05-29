@@ -2,6 +2,8 @@ import SwiftUI
 
 struct DiscoverView: View {
     @State private var viewModel = DiscoverViewModel()
+    @State private var showNoParkAlert = false
+    private let sectionTitleFont = Font.custom("ArchivoNarrow-Bold", size: 28)
 
     var body: some View {
         NavigationStack {
@@ -10,8 +12,25 @@ struct DiscoverView: View {
                     // Search Input
                     searchField
 
-                    // Quick Action Card
-                    quickActionCard
+                    // Location warning + Quick Action Card
+                    VStack(spacing: VelocitySpacing.xs) {
+                        if !viewModel.isLocationAuthorized {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.slash.fill")
+                                    .font(.system(size: 11))
+                                Text("Enable Location Services to check in at parks and see nearby coasters.")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundStyle(Color.velocityError)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, VelocitySpacing.edgeMargin)
+                        }
+
+                        quickActionCard
+                    }
+
+                    // Nearby Rides
+                    nearbySection
 
                     // Trending Now Carousel
                     trendingSection
@@ -54,6 +73,11 @@ struct DiscoverView: View {
             }
             .toolbarBackground(Color.velocitySurface.opacity(0.8), for: .navigationBar)
             .task { await viewModel.loadInitialData() }
+            .alert("Not Near a Park", isPresented: $showNoParkAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("You don't appear to be near any amusement parks. Head to a park to use Quick Check-In!")
+            }
         }
     }
 
@@ -83,6 +107,25 @@ struct DiscoverView: View {
 
     // MARK: - Quick Action Card (gradient border)
     private var quickActionCard: some View {
+        Group {
+            if let park = viewModel.nearestPark {
+                NavigationLink(destination: SelectCoasterView(park: park)) {
+                    quickActionCardContent(parkName: park.displayName)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    showNoParkAlert = true
+                } label: {
+                    quickActionCardContent(parkName: nil)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+    }
+
+    private func quickActionCardContent(parkName: String?) -> some View {
         // Gradient border wrapper
         RoundedRectangle(cornerRadius: VelocityRadius.xl)
             .fill(
@@ -92,13 +135,13 @@ struct DiscoverView: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .frame(height: 120)
+            .frame(minHeight: 128)
             .overlay(
                 RoundedRectangle(cornerRadius: VelocityRadius.xl - 1)
                     .fill(Color.velocitySurfaceContainerLowest)
                     .padding(1)
                     .overlay(
-                        HStack {
+                        HStack(alignment: .center, spacing: VelocitySpacing.md) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("LIVE ACTION")
                                     .font(.labelCaps())
@@ -107,14 +150,19 @@ struct DiscoverView: View {
                                 Text("Quick Check-In")
                                     .font(.headlineMedium())
                                     .foregroundStyle(Color.onSurface)
-                                Text("At the park? Log your current ride instantly.")
-                                    .font(.bodyMedium())
+                                if let parkName {
+                                    Text(parkName)
+                                        .font(.bodyMedium())
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.nitroBlue)
+                                }
+                                Text(parkName != nil ? "Tap to check in at this park" : "At the park? Log your current ride instantly.")
+                                    .font(.bodySmall())
                                     .foregroundStyle(Color.onSurfaceVariant)
-                                    .lineLimit(2)
-                                    .frame(maxWidth: 200, alignment: .leading)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-
-                            Spacer()
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
                             // Nitro glow circle button
                             Circle()
@@ -130,7 +178,208 @@ struct DiscoverView: View {
                         .padding(VelocitySpacing.lg)
                     )
             )
+    }
+
+    // MARK: - Nearby Section
+    private var nearbySection: some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.sm) {
+            HStack {
+                HStack(spacing: VelocitySpacing.xs) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.nitroBlue)
+                    Text("NEARBY")
+                        .font(sectionTitleFont)
+                        .foregroundStyle(Color.onSurface)
+                        .italic()
+                }
+                Spacer()
+                Text("WITHIN 200 MI")
+                    .font(.labelCaps())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .tracking(0.96)
+            }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
+
+            if viewModel.isLoadingNearby {
+                HStack { Spacer(); ProgressView().tint(Color.nitroBlue); Spacer() }
+                    .frame(height: 280)
+            } else if viewModel.nearbyRides.isEmpty {
+                // Empty state — single card with coaster image
+                ScrollView(.horizontal, showsIndicators: false) {
+                    nearbyEmptyCard
+                        .padding(.horizontal, VelocitySpacing.edgeMargin)
+                }
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: VelocitySpacing.md) {
+                        ForEach(viewModel.nearbyRides) { nearby in
+                            NavigationLink(destination: CoasterDetailView(rideId: nearby.ride.id)) {
+                                nearbyCard(nearby: nearby)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, VelocitySpacing.edgeMargin)
+                }
+            }
+        }
+    }
+
+    // MARK: - Nearby Empty Card
+    private var nearbyEmptyCard: some View {
+        ZStack(alignment: .bottom) {
+            // Coaster background image
+            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(width: 280, height: 280)
+                .overlay(
+                    Image("nearby_empty")
+                        .resizable()
+                        .scaledToFill()
+                        .opacity(0.5)
+                        .frame(width: 280, height: 280)
+                        .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                )
+
+            // Bottom gradient
+            LinearGradient(
+                colors: [.clear, Color.velocityBackground.opacity(0.9), Color.velocityBackground],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+
+            // Content overlay
+            VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+                Image(systemName: "location.slash")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Color.onSurfaceVariant)
+
+                Text("NO COASTERS NEARBY!")
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.onSurface)
+
+                Text("There are no coasters within 200 miles of your current location. Time for a road trip!")
+                    .font(.bodySmall())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(VelocitySpacing.lg)
+            .frame(width: 280, alignment: .leading)
+        }
+        .frame(width: 280, height: 280)
+    }
+
+    // MARK: - Nearby Card (matches Stitch Discover card style with distance badge)
+    private func nearbyCard(nearby: NearbyRide) -> some View {
+        ZStack(alignment: .bottom) {
+            // Background image
+            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(width: 220, height: 280)
+                .overlay(
+                    Group {
+                        if let url = nearby.ride.mainImageURL, let imageURL = URL(string: url) {
+                            AsyncImage(url: imageURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Image(systemName: "figure.roller.coaster")
+                                    .font(.system(size: 32))
+                                    .foregroundStyle(Color.nitroBlue.opacity(0.2))
+                            }
+                        } else {
+                            Image(systemName: "figure.roller.coaster")
+                                .font(.system(size: 32))
+                                .foregroundStyle(Color.nitroBlue.opacity(0.2))
+                        }
+                    }
+                    .frame(width: 220, height: 280)
+                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                )
+
+            // Bottom gradient
+            LinearGradient(
+                colors: [.clear, Color.velocityBackground.opacity(0.9), Color.velocityBackground],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+
+            // Distance badge (top-right)
+            VStack {
+                HStack {
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 10))
+                        Text(nearby.distanceLabel)
+                            .font(.labelCaps())
+                            .tracking(0.96)
+                    }
+                    .foregroundStyle(Color.nitroBlue)
+                    .padding(.horizontal, VelocitySpacing.xs)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color.velocitySurfaceContainerLowest.opacity(0.8))
+                            .background(Capsule().fill(.ultraThinMaterial).environment(\.colorScheme, .dark))
+                            .overlay(Capsule().stroke(Color.nitroBlue.opacity(0.2), lineWidth: 1))
+                    )
+                    .padding(VelocitySpacing.sm)
+                }
+                Spacer()
+            }
+
+            // Content overlay
+            VStack(alignment: .leading, spacing: 4) {
+                Text(nearby.ride.name.uppercased())
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.onSurface)
+                    .lineLimit(1)
+
+                if let park = nearby.ride.park {
+                    Text("\(park.displayName), \(park.state ?? "")")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .tracking(0.96)
+                        .lineLimit(1)
+                }
+
+                // Quick stats
+                HStack(spacing: VelocitySpacing.sm) {
+                    if let speed = nearby.ride.speed {
+                        HStack(spacing: 3) {
+                            Text("\(speed)")
+                                .font(.statValue())
+                                .foregroundStyle(Color.nitroBlue)
+                            Text("MPH")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Color.onSurfaceVariant)
+                        }
+                    }
+                    if nearby.ride.speed != nil && nearby.ride.height != nil {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(width: 1, height: 20)
+                    }
+                    if let height = nearby.ride.height {
+                        HStack(spacing: 3) {
+                            Text("\(height)")
+                                .font(.statValue())
+                                .foregroundStyle(Color.nitroBlue)
+                            Text("FT")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Color.onSurfaceVariant)
+                        }
+                    }
+                }
+                .padding(.top, 2)
+            }
+            .padding(VelocitySpacing.md)
+            .frame(width: 220, alignment: .leading)
+        }
+        .frame(width: 220, height: 280)
     }
 
     // MARK: - Trending Now
@@ -138,7 +387,7 @@ struct DiscoverView: View {
         VStack(alignment: .leading, spacing: VelocitySpacing.sm) {
             HStack {
                 Text("TRENDING NOW")
-                    .font(.headlineLarge())
+                    .font(sectionTitleFont)
                     .foregroundStyle(Color.onSurface)
                     .italic()
                 Spacer()
@@ -245,7 +494,7 @@ struct DiscoverView: View {
                         }
                     }
 
-                    if let speed = ride.speed, (ride.height != nil || ride.inversions != nil) {
+                    if ride.speed != nil, (ride.height != nil || ride.inversions != nil) {
                         Rectangle()
                             .fill(Color.white.opacity(0.1))
                             .frame(width: 1, height: 32)
@@ -283,9 +532,13 @@ struct DiscoverView: View {
     private var topRatedSection: some View {
         VStack(alignment: .leading, spacing: VelocitySpacing.md) {
             Text("TOP RATED WORLDWIDE")
-                .font(.headlineLarge())
+                .font(sectionTitleFont)
                 .foregroundStyle(Color.onSurface)
                 .italic()
+                .multilineTextAlignment(.leading)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, VelocitySpacing.edgeMargin)
 
             VStack(spacing: VelocitySpacing.sm) {

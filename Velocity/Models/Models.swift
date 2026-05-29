@@ -94,6 +94,7 @@ struct ProfileRide: Codable, Identifiable, Sendable {
     let rideId: Int64
     let comments: String?
     let score: Int16?
+    let waitTime: Int16?
 
     // Joined data
     let ride: Ride?
