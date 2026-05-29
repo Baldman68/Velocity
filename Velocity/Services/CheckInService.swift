@@ -24,6 +24,31 @@ final class CheckInService {
             .value
     }
 
+    /// Average wait reports for the provided rides during the last hour.
+    func fetchAverageWaitTimeForRecentCheckIns(rideIds: [Int64], withinLast seconds: TimeInterval = 3600) async throws -> Int? {
+        guard !rideIds.isEmpty else { return nil }
+
+        struct WaitTimeRow: Decodable {
+            let waitTime: Int16?
+        }
+
+        let since = Date().addingTimeInterval(-seconds)
+        let rows: [WaitTimeRow] = try await client
+            .from("profileRide")
+            .select("waitTime")
+            .in("rideId", values: rideIds.map { String($0) as any PostgrestFilterValue })
+            .gte("createdDate", value: since)
+            .not("waitTime", operator: .is, value: "null")
+            .execute()
+            .value
+
+        let waitTimes = rows.compactMap { $0.waitTime }.map(Int.init)
+        guard !waitTimes.isEmpty else { return nil }
+
+        let average = Double(waitTimes.reduce(0, +)) / Double(waitTimes.count)
+        return Int(average.rounded())
+    }
+
     /// Save or update a personal note on a ride
     func saveNote(profileId: Int64, rideId: Int64, note: String) async throws {
         struct NotePayload: Encodable {

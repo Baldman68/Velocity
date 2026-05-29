@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct SelectCoasterView: View {
@@ -6,9 +7,12 @@ struct SelectCoasterView: View {
     @State private var isLoading = true
     @State private var selectedRide: Ride?
     @State private var showCheckIn = false
+    @State private var averageWaitLabel = "Unknown"
+    @State private var weatherLabel = "Unknown"
     @Environment(\.dismiss) private var dismiss
 
     private let rideService = RideService()
+    private let checkInService = CheckInService()
 
     var body: some View {
         ScrollView {
@@ -95,10 +99,10 @@ struct SelectCoasterView: View {
     private var statsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: VelocitySpacing.sm) {
-                statChip(label: "Park Status", value: "Open", icon: "checkmark.circle.fill", color: .green)
-                statChip(label: "Avg Wait", value: "45m", icon: "timer", color: Color.nitroBlue)
-                statChip(label: "Weather", value: "72°F", icon: "sun.max.fill", color: Color.pulseOrange)
-                statChip(label: "Crowd", value: "Moderate", icon: "person.3.fill", color: Color.onSurfaceVariant)
+                let status = parkOperatingStatus
+                statChip(label: "Park Status", value: status.value, icon: status.icon, color: status.color)
+                statChip(label: "Avg Wait", value: averageWaitLabel, icon: "timer", color: Color.nitroBlue)
+                statChip(label: "Weather", value: weatherLabel, icon: "thermometer.sun.fill", color: Color.pulseOrange)
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
         }
@@ -112,6 +116,8 @@ struct SelectCoasterView: View {
             Text(value)
                 .font(.statValue())
                 .foregroundStyle(Color.onSurface)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
             Text(label.uppercased())
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Color.onSurfaceVariant)
@@ -359,11 +365,218 @@ struct SelectCoasterView: View {
     // MARK: - Data Loading
     private func loadRides() async {
         isLoading = true
+        async let weather = fetchWeatherLabel()
+
         do {
-            rides = try await rideService.fetchRidesForPark(parkId: park.id)
+            let loadedRides = try await rideService.fetchRidesForPark(parkId: park.id)
+            rides = loadedRides
+            averageWaitLabel = await fetchAverageWaitLabel(for: loadedRides)
         } catch {
             rides = []
+            averageWaitLabel = "Unknown"
         }
+
+        weatherLabel = await weather
         isLoading = false
+    }
+
+    private var parkOperatingStatus: ParkOperatingStatus {
+        guard let hours = todaysHours?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !hours.isEmpty else {
+            return .unknown
+        }
+
+        let normalizedHours = hours.lowercased()
+        if normalizedHours.contains("closed") {
+            return .closed
+        }
+
+        if normalizedHours.contains("24") && (normalizedHours.contains("hour") || normalizedHours.contains("open")) {
+            return .open
+        }
+
+        guard let interval = operatingInterval(from: hours, now: Date()) else {
+            return .unknown
+        }
+
+        return interval.contains(Date()) ? .open : .closed
+    }
+
+    private var todaysHours: String? {
+        switch Calendar.current.component(.weekday, from: Date()) {
+        case 1: park.sundayHours
+        case 2: park.mondayHours
+        case 3: park.tuesdayHours
+        case 4: park.wednesdayHours
+        case 5: park.thursdayHours
+        case 6: park.fridayHours
+        case 7: park.saturdayHours
+        default: nil
+        }
+    }
+
+    private func operatingInterval(from hours: String, now: Date) -> DateInterval? {
+        let normalized = hours
+            .replacingOccurrences(of: "–", with: "-")
+            .replacingOccurrences(of: "—", with: "-")
+            .replacingOccurrences(of: " to ", with: "-", options: .caseInsensitive)
+
+        let parts = normalized
+            .components(separatedBy: "-")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard parts.count >= 2 else { return nil }
+
+        let endMeridiem = meridiem(in: parts[1])
+        let startAssumedMeridiem = assumedStartMeridiem(startText: parts[0], endMeridiem: endMeridiem)
+
+        guard let start = time(from: parts[0], on: now, assumedMeridiem: startAssumedMeridiem),
+              var end = time(from: parts[1], on: now, assumedMeridiem: nil) else {
+            return nil
+        }
+
+        if end <= start,
+           let nextDayEnd = Calendar.current.date(byAdding: .day, value: 1, to: end) {
+            end = nextDayEnd
+        }
+
+        return DateInterval(start: start, end: end)
+    }
+
+    private func assumedStartMeridiem(startText: String, endMeridiem: String?) -> String? {
+        guard meridiem(in: startText) == nil,
+              let endMeridiem,
+              let hour = leadingHour(in: startText) else {
+            return nil
+        }
+
+        if endMeridiem == "PM" {
+            return hour <= 5 ? "PM" : "AM"
+        }
+
+        return hour >= 6 ? "PM" : "AM"
+    }
+
+    private func time(from text: String, on date: Date, assumedMeridiem: String?) -> Date? {
+        let rawText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var candidates = [rawText]
+        if meridiem(in: rawText) == nil, let assumedMeridiem {
+            candidates.insert("\(rawText) \(assumedMeridiem)", at: 0)
+        }
+
+        let formats = ["h:mm a", "h a", "ha", "h:mma", "H:mm", "H"]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        for candidate in candidates {
+            let normalized = normalizedTimeText(candidate)
+            for format in formats {
+                formatter.dateFormat = format
+                guard let parsed = formatter.date(from: normalized) else { continue }
+
+                let components = Calendar.current.dateComponents([.hour, .minute], from: parsed)
+                guard let hour = components.hour else { continue }
+
+                return Calendar.current.date(
+                    bySettingHour: hour,
+                    minute: components.minute ?? 0,
+                    second: 0,
+                    of: date
+                )
+            }
+        }
+
+        return nil
+    }
+
+    private func normalizedTimeText(_ text: String) -> String {
+        var normalized = text
+            .replacingOccurrences(of: ".", with: "")
+            .uppercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        normalized = normalized.replacingOccurrences(of: "AM", with: " AM")
+        normalized = normalized.replacingOccurrences(of: "PM", with: " PM")
+        while normalized.contains("  ") {
+            normalized = normalized.replacingOccurrences(of: "  ", with: " ")
+        }
+
+        return normalized
+    }
+
+    private func meridiem(in text: String) -> String? {
+        let uppercased = text.uppercased()
+        if uppercased.contains("AM") { return "AM" }
+        if uppercased.contains("PM") { return "PM" }
+        return nil
+    }
+
+    private func leadingHour(in text: String) -> Int? {
+        let digits = text.prefix { $0.isNumber }
+        return Int(digits)
+    }
+
+    private func fetchAverageWaitLabel(for rides: [Ride]) async -> String {
+        do {
+            let average = try await checkInService.fetchAverageWaitTimeForRecentCheckIns(
+                rideIds: rides.map(\.id)
+            )
+
+            guard let average else { return "Unknown" }
+            return "\(average)m"
+        } catch {
+            return "Unknown"
+        }
+    }
+
+    private func fetchWeatherLabel() async -> String {
+        guard let latitude = park.latitude.flatMap(Double.init),
+              let longitude = park.longitude.flatMap(Double.init),
+              latitude != 0,
+              longitude != 0 else {
+            return "Unknown"
+        }
+
+        var components = URLComponents(string: "https://api.open-meteo.com/v1/forecast")
+        components?.queryItems = [
+            URLQueryItem(name: "latitude", value: "\(latitude)"),
+            URLQueryItem(name: "longitude", value: "\(longitude)"),
+            URLQueryItem(name: "current", value: "temperature_2m"),
+            URLQueryItem(name: "temperature_unit", value: "fahrenheit")
+        ]
+
+        guard let url = components?.url else { return "Unknown" }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(OpenMeteoCurrentWeatherResponse.self, from: data)
+            guard let temperature = response.current?.temperature2m else { return "Unknown" }
+            return "\(Int(temperature.rounded()))°F"
+        } catch {
+            return "Unknown"
+        }
+    }
+}
+
+private struct ParkOperatingStatus {
+    let value: String
+    let icon: String
+    let color: Color
+
+    static let open = ParkOperatingStatus(value: "Open", icon: "checkmark.circle.fill", color: .green)
+    static let closed = ParkOperatingStatus(value: "Closed", icon: "xmark.circle.fill", color: Color.velocityError)
+    static let unknown = ParkOperatingStatus(value: "Unknown", icon: "questionmark.circle.fill", color: Color.onSurfaceVariant)
+}
+
+private struct OpenMeteoCurrentWeatherResponse: Decodable {
+    let current: Current?
+
+    struct Current: Decodable {
+        let temperature2m: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case temperature2m = "temperature_2m"
+        }
     }
 }
