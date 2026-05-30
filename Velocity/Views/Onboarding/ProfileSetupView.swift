@@ -10,7 +10,7 @@ private enum ProfileSetupField: Hashable {
 
 struct ProfileSetupView: View {
     var onBack: () -> Void
-    var onContinue: () -> Void
+    var onContinue: (String, String, String, String) -> Void // firstName, username, email, avatarName
 
     @State private var firstName = ""
     @State private var username = ""
@@ -221,8 +221,13 @@ struct ProfileSetupView: View {
 
             // CONTINUE button
             Button(action: {
-                // Save to Supabase profile if authenticated
-                onContinue()
+                let avatarName = isCustomAvatarSelected ? "custom" : storedAvatarName
+                onContinue(
+                    firstName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    username.trimmingCharacters(in: .whitespacesAndNewlines),
+                    email.trimmingCharacters(in: .whitespacesAndNewlines),
+                    avatarName
+                )
             }) {
                 HStack(spacing: VelocitySpacing.sm) {
                     Text("CONTINUE")
@@ -237,8 +242,9 @@ struct ProfileSetupView: View {
                 .background(Color.nitroBlue)
                 .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
             }
+            .disabled(!canContinue)
+            .opacity(showButton ? (canContinue ? 1 : 0.5) : 0)
             .padding(.top, VelocitySpacing.lg)
-            .opacity(showButton ? 1 : 0)
 
             // Terms
             Text("BY CONTINUING, YOU AGREE TO THE VELOCITY PROTOCOL AND MISSION DIRECTIVES.")
@@ -470,6 +476,11 @@ struct ProfileSetupView: View {
 
     private var firstNameTrimmed: String {
         firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canContinue: Bool {
+        !firstNameTrimmed.isEmpty &&
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func assignRandomUsername(excludingCurrentSuffix: Bool = false) {
