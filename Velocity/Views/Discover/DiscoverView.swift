@@ -3,6 +3,7 @@ import SwiftUI
 struct DiscoverView: View {
     @State private var viewModel = DiscoverViewModel()
     @State private var showNoParkAlert = false
+    @State private var showLocationRequiredAlert = false
     private let sectionTitleFont = Font.custom("ArchivoNarrow-Bold", size: 28)
 
     var body: some View {
@@ -78,6 +79,11 @@ struct DiscoverView: View {
             } message: {
                 Text("You don't appear to be near any amusement parks. Head to a park to use Quick Check-In!")
             }
+            .alert("Location Services Required", isPresented: $showLocationRequiredAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Location Services are not turned on for Velocity. You'll need to allow location access before you can check in at a park.")
+            }
         }
     }
 
@@ -115,7 +121,11 @@ struct DiscoverView: View {
                 .buttonStyle(.plain)
             } else {
                 Button {
-                    showNoParkAlert = true
+                    if viewModel.isLocationAuthorized {
+                        showNoParkAlert = true
+                    } else {
+                        showLocationRequiredAlert = true
+                    }
                 } label: {
                     quickActionCardContent(parkName: nil)
                 }
