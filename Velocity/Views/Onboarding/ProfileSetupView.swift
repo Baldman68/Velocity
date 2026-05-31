@@ -458,6 +458,7 @@ struct ProfileSetupView: View {
                 TextField(placeholder, text: text)
                     .font(.bodyMedium())
                     .foregroundStyle(Color.onSurface)
+                    .keyboardType(.emailAddress)
             }
             .padding(.horizontal, VelocitySpacing.md)
             .padding(.vertical, VelocitySpacing.sm)
