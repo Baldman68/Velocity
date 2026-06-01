@@ -173,7 +173,7 @@ struct StatCard: View {
                 .foregroundStyle(Color.onSurfaceVariant)
                 .tracking(0.96) // 0.08em at 12px
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 110)
         .padding(.vertical, VelocitySpacing.md)
         .background(
             RoundedRectangle(cornerRadius: VelocityRadius.component)

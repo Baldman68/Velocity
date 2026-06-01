@@ -224,6 +224,7 @@ struct ProfileView: View {
                 .font(.labelCaps())
                 .foregroundStyle(Color.onSurfaceVariant)
                 .tracking(0.96)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, VelocitySpacing.edgeMargin)
 
             if viewModel.recentActivity.isEmpty && !viewModel.isLoading {
