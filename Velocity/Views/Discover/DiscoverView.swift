@@ -289,21 +289,7 @@ struct DiscoverView: View {
                 .fill(Color.velocitySurfaceContainerHighest)
                 .frame(width: 220, height: 280)
                 .overlay(
-                    Group {
-                        if let url = nearby.ride.mainImageURL, let imageURL = URL(string: url) {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "figure.roller.coaster")
-                                    .font(.system(size: 32))
-                                    .foregroundStyle(Color.nitroBlue.opacity(0.2))
-                            }
-                        } else {
-                            Image(systemName: "figure.roller.coaster")
-                                .font(.system(size: 32))
-                                .foregroundStyle(Color.nitroBlue.opacity(0.2))
-                        }
-                    }
+                    CoasterImage(ride: nearby.ride)
                     .frame(width: 220, height: 280)
                     .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
                 )
@@ -346,7 +332,10 @@ struct DiscoverView: View {
                 Text(nearby.ride.name.uppercased())
                     .font(.headlineMedium())
                     .foregroundStyle(Color.onSurface)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let park = nearby.ride.park {
                     Text("\(park.displayName), \(park.state ?? "")")
@@ -435,17 +424,7 @@ struct DiscoverView: View {
                 .fill(Color.velocitySurfaceContainerHighest)
                 .frame(width: 288, height: 400)
                 .overlay(
-                    Group {
-                        if let url = ride.mainImageURL, let imageURL = URL(string: url) {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "figure.roller.coaster")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(Color.nitroBlue.opacity(0.2))
-                            }
-                        }
-                    }
+                    CoasterImage(ride: ride)
                     .frame(width: 288, height: 400)
                     .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
                 )
@@ -481,7 +460,10 @@ struct DiscoverView: View {
                 Text(ride.name.uppercased())
                     .font(.headlineMedium())
                     .foregroundStyle(Color.onSurface)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let park = ride.park {
                     Text("\(park.displayName), \(park.state ?? "")")
@@ -566,28 +548,12 @@ struct DiscoverView: View {
     // MARK: - Top Rated Card (glass card with rank number, thumbnail, name, stars, credits)
     private func topRatedCard(ride: Ride, rank: Int) -> some View {
         HStack(spacing: VelocitySpacing.md) {
-            // Large italic rank number at low opacity
-            Text(String(format: "%02d", rank))
-                .font(.headlineHero())
-                .foregroundStyle(Color.onSurface.opacity(0.2))
-                .italic()
-                .frame(width: 48)
-
             // Thumbnail
             RoundedRectangle(cornerRadius: VelocityRadius.component)
                 .fill(Color.velocitySurfaceContainerHighest)
                 .frame(width: 80, height: 80)
                 .overlay(
-                    Group {
-                        if let url = ride.mainImageURL, let imageURL = URL(string: url) {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "figure.roller.coaster")
-                                    .foregroundStyle(Color.nitroBlue.opacity(0.3))
-                            }
-                        }
-                    }
+                    CoasterImage(ride: ride)
                     .frame(width: 80, height: 80)
                     .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
                 )
@@ -595,6 +561,19 @@ struct DiscoverView: View {
                     RoundedRectangle(cornerRadius: VelocityRadius.component)
                         .stroke(Color.white.opacity(0.05), lineWidth: 1)
                 )
+                .overlay(alignment: .topLeading) {
+                    Text(String(format: "%02d", rank))
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.onNitroBlue)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(Color.nitroBlue)
+                                .shadow(color: Color.nitroBlue.opacity(0.35), radius: 8)
+                        )
+                        .padding(6)
+                }
 
             // Info
             VStack(alignment: .leading, spacing: 4) {
@@ -602,7 +581,10 @@ struct DiscoverView: View {
                     .font(.bodyLarge())
                     .fontWeight(.bold)
                     .foregroundStyle(Color.onSurface)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let park = ride.park {
                     Text("\(park.displayName), \(park.state ?? "")")
@@ -623,8 +605,9 @@ struct DiscoverView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
+            Spacer(minLength: VelocitySpacing.xs)
 
             // Credits / speed stat
             VStack(alignment: .trailing, spacing: 2) {

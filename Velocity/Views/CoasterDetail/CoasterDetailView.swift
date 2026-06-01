@@ -39,104 +39,198 @@ struct CoasterDetailView: View {
 
     // MARK: - Hero Section (530px tall, badges, title)
     private var heroSection: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Hero image
-            ZStack {
-                Rectangle().fill(Color.velocitySurfaceContainerHighest)
-                if let url = viewModel.ride?.mainImageURL, let imageURL = URL(string: url) {
-                    AsyncImage(url: imageURL) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Image(systemName: "figure.roller.coaster")
-                            .font(.system(size: 60))
-                            .foregroundStyle(Color.nitroBlue.opacity(0.2))
+        GeometryReader { proxy in
+            ZStack(alignment: .bottomLeading) {
+                // Hero image
+                ZStack {
+                    Rectangle().fill(Color.velocitySurfaceContainerHighest)
+                    if let ride = viewModel.ride {
+                        CoasterImage(ride: ride)
+                            .frame(width: proxy.size.width, height: 530)
                     }
                 }
-            }
-            .frame(height: 530)
-            .clipped()
+                .frame(width: proxy.size.width, height: 530)
+                .clipped()
 
-            // Gradient overlay
-            LinearGradient(
-                colors: [.clear, Color.velocityBackground.opacity(0.4), Color.velocityBackground],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+                // Gradient overlay
+                LinearGradient(
+                    colors: [.clear, Color.velocityBackground.opacity(0.4), Color.velocityBackground],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(width: proxy.size.width, height: 530)
 
-            // Title + badges
-            VStack(alignment: .leading, spacing: VelocitySpacing.base) {
-                // Badges row
-                HStack(spacing: VelocitySpacing.xs) {
-                    if let manufacturer = viewModel.ride?.manufacturer, !manufacturer.isEmpty {
-                        Text(manufacturer.uppercased())
+                // Title + badges
+                VStack(alignment: .leading, spacing: VelocitySpacing.base) {
+                    // Badges row
+                    HStack(spacing: VelocitySpacing.xs) {
+                        if let manufacturer = viewModel.ride?.manufacturer, !manufacturer.isEmpty {
+                            Text(manufacturer.uppercased())
+                                .font(.labelCaps())
+                                .tracking(0.96)
+                                .foregroundStyle(Color.onPulseOrange)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.pulseOrange)
+                                )
+                        }
+
+                        if let ride = viewModel.ride, ride.starRating > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 12))
+                                Text(String(format: "%.1f", ride.starRating))
+                            }
                             .font(.labelCaps())
-                            .tracking(0.96)
-                            .foregroundStyle(Color.onPulseOrange)
+                            .foregroundStyle(Color.onSurface)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background(
                                 RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.pulseOrange)
+                                    .fill(Color.velocitySurfaceContainerHighest.opacity(0.6))
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(.ultraThinMaterial)
+                                            .environment(\.colorScheme, .dark)
+                                    )
                             )
-                    }
-
-                    if let ride = viewModel.ride, ride.starRating > 0 {
-                        HStack(spacing: 4) {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 12))
-                            Text(String(format: "%.1f", ride.starRating))
                         }
-                        .font(.labelCaps())
+                    }
+
+                    Text(viewModel.ride?.name.uppercased() ?? "LOADING...")
+                        .font(.headlineHero())
                         .foregroundStyle(Color.onSurface)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.velocitySurfaceContainerHighest.opacity(0.6))
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(.ultraThinMaterial)
-                                        .environment(\.colorScheme, .dark)
-                                )
-                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if let park = viewModel.ride?.park {
+                        Text("\(park.displayName) • \(park.city ?? ""), \(park.state ?? "")")
+                            .font(.bodyLarge())
+                            .foregroundStyle(Color.onSurfaceVariant)
                     }
                 }
-
-                Text(viewModel.ride?.name.uppercased() ?? "LOADING...")
-                    .font(.headlineHero())
-                    .foregroundStyle(Color.onSurface)
-
-                if let park = viewModel.ride?.park {
-                    Text("\(park.displayName) • \(park.city ?? ""), \(park.state ?? "")")
-                        .font(.bodyLarge())
-                        .foregroundStyle(Color.onSurfaceVariant)
-                }
+                .padding(.horizontal, VelocitySpacing.edgeMargin)
+                .padding(.bottom, VelocitySpacing.lg)
+                .frame(width: proxy.size.width, alignment: .leading)
             }
-            .padding(.horizontal, VelocitySpacing.edgeMargin)
-            .padding(.bottom, VelocitySpacing.lg)
+            .frame(width: proxy.size.width, height: 530)
         }
         .frame(height: 530)
     }
-
     // MARK: - Check-In Overlap Button (overlaps hero bottom by -24px)
     private var checkInOverlapButton: some View {
-        Button { viewModel.showCheckInSheet = true } label: {
-            HStack(spacing: VelocitySpacing.xs) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 20))
-                Text("Check-In to Ride")
-                    .font(.labelCaps())
-                    .tracking(0.96)
+        VStack(spacing: VelocitySpacing.xs) {
+            Button {
+                guard viewModel.checkInLocationStatus.canCheckIn else { return }
+                viewModel.showCheckInSheet = true
+            } label: {
+                HStack(spacing: VelocitySpacing.xs) {
+                    Image(systemName: checkInButtonIcon)
+                        .font(.system(size: 20))
+                    Text("Check-In to Ride")
+                        .font(.labelCaps())
+                        .tracking(0.96)
+                }
+                .foregroundStyle(
+                    viewModel.checkInLocationStatus.canCheckIn
+                        ? Color.onNitroBlueContainer
+                        : Color.onSurfaceVariant
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 56)
+                .background(
+                    viewModel.checkInLocationStatus.canCheckIn
+                        ? Color.nitroBlue
+                        : Color.velocitySurfaceContainerHighest
+                )
+                .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                .shadow(
+                    color: viewModel.checkInLocationStatus.canCheckIn
+                        ? Color.nitroBlue.opacity(0.2)
+                        : .clear,
+                    radius: 16,
+                    y: 4
+                )
             }
-            .foregroundStyle(Color.onNitroBlueContainer)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(Color.nitroBlue)
-            .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
-            .shadow(color: Color.nitroBlue.opacity(0.2), radius: 16, y: 4)
+            .disabled(!viewModel.checkInLocationStatus.canCheckIn)
+
+            if let checkInLocationMessage {
+                VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+                    HStack(alignment: .top, spacing: VelocitySpacing.xs) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.nitroBlue)
+                            .padding(.top, 2)
+                        Text(checkInLocationMessage)
+                            .font(.bodySmall())
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .multilineTextAlignment(.leading)
+                    }
+
+                    if viewModel.checkInLocationStatus == .locationPermissionNeeded {
+                        Button {
+                            viewModel.requestLocationPermission()
+                        } label: {
+                            Text("ENABLE LOCATION")
+                                .font(.labelCaps())
+                                .tracking(0.96)
+                                .foregroundStyle(Color.nitroBlue)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(VelocitySpacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.card)
+                        .fill(Color.velocitySurfaceContainerLow.opacity(0.8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                .stroke(Color.velocityOutlineVariant.opacity(0.4), lineWidth: 1)
+                        )
+                )
+            }
         }
         .padding(.horizontal, VelocitySpacing.edgeMargin)
         .offset(y: -24)
+    }
+
+    private var checkInButtonIcon: String {
+        switch viewModel.checkInLocationStatus {
+        case .allowed:
+            "checkmark.circle.fill"
+        case .checking:
+            "location.fill"
+        default:
+            "lock.fill"
+        }
+    }
+
+    private var checkInLocationMessage: String? {
+        switch viewModel.checkInLocationStatus {
+        case .waitingForRide:
+            nil
+        case .checking:
+            "Checking your location before enabling ride check-in."
+        case .allowed:
+            nil
+        case .notNearPark(let distanceMiles):
+            "You need to be in or near \(viewModel.ride?.park?.displayName ?? "this park") to check in. You're about \(formattedDistance(distanceMiles)) away."
+        case .locationPermissionNeeded:
+            "Turn on Location Services for Velocity so we can confirm you're at the park before check-in."
+        case .locationUnavailable:
+            "We could not determine your location. Turn on Location Services and try again before checking in."
+        case .parkLocationUnavailable:
+            "This park does not have location data yet, so check-in is unavailable."
+        }
+    }
+
+    private func formattedDistance(_ distanceMiles: Double) -> String {
+        if distanceMiles < 10 {
+            return String(format: "%.1f miles", distanceMiles)
+        }
+
+        return "\(Int(distanceMiles.rounded())) miles"
     }
 
     // MARK: - Stats Bento Grid (2-col glass cards)

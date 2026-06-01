@@ -1,9 +1,24 @@
 import Foundation
+import CoreLocation
 import Observation
+
+enum CheckInLocationStatus: Equatable {
+    case waitingForRide
+    case checking
+    case allowed
+    case notNearPark(distanceMiles: Double)
+    case locationPermissionNeeded
+    case locationUnavailable
+    case parkLocationUnavailable
+
+    var canCheckIn: Bool {
+        self == .allowed
+    }
+}
 
 @Observable
 @MainActor
-final class CoasterDetailViewModel {
+final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
     var ride: Ride?
     var reviews: [ProfileRideReview] = []
     var userNote: ProfileRideNote?
@@ -11,19 +26,91 @@ final class CoasterDetailViewModel {
     var showCheckInSheet = false
     var showReviewSheet = false
     var errorMessage: String?
+    var checkInLocationStatus: CheckInLocationStatus = .waitingForRide
 
     private let rideService = RideService()
     private let checkInService = CheckInService()
+    private let locationManager = CLLocationManager()
+    private let checkInRadiusMiles = 1.0
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+    }
 
     func loadRide(id: Int64) async {
         isLoading = true
         do {
             ride = try await rideService.fetchRide(id: id)
             reviews = try await rideService.fetchReviews(rideId: id)
+            refreshCheckInLocation()
         } catch {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    func requestLocationPermission() {
+        guard CLLocationManager.locationServicesEnabled() else {
+            checkInLocationStatus = .locationUnavailable
+            return
+        }
+
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedAlways, .authorizedWhenInUse:
+            refreshCheckInLocation()
+        case .denied, .restricted:
+            checkInLocationStatus = .locationPermissionNeeded
+        @unknown default:
+            checkInLocationStatus = .locationPermissionNeeded
+        }
+    }
+
+    func refreshCheckInLocation() {
+        guard parkLocation != nil else {
+            checkInLocationStatus = ride == nil ? .waitingForRide : .parkLocationUnavailable
+            return
+        }
+
+        guard CLLocationManager.locationServicesEnabled() else {
+            checkInLocationStatus = .locationUnavailable
+            return
+        }
+
+        switch locationManager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            checkInLocationStatus = .checking
+            locationManager.requestLocation()
+        case .notDetermined, .denied, .restricted:
+            checkInLocationStatus = .locationPermissionNeeded
+        @unknown default:
+            checkInLocationStatus = .locationPermissionNeeded
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+
+        Task { @MainActor in
+            updateCheckInStatus(for: location)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            checkInLocationStatus = .locationUnavailable
+        }
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        guard manager.authorizationStatus != .notDetermined else { return }
+
+        Task { @MainActor in
+            refreshCheckInLocation()
+        }
     }
 
     func loadUserNote(rideId: Int64, profileId: Int64) async {
@@ -69,5 +156,29 @@ final class CoasterDetailViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private var parkLocation: CLLocation? {
+        guard let park = ride?.park,
+              let latitude = park.latitude.flatMap(Double.init),
+              let longitude = park.longitude.flatMap(Double.init),
+              latitude != 0,
+              longitude != 0 else {
+            return nil
+        }
+
+        return CLLocation(latitude: latitude, longitude: longitude)
+    }
+
+    private func updateCheckInStatus(for userLocation: CLLocation) {
+        guard let parkLocation else {
+            checkInLocationStatus = .parkLocationUnavailable
+            return
+        }
+
+        let distanceMiles = userLocation.distance(from: parkLocation) / 1609.344
+        checkInLocationStatus = distanceMiles <= checkInRadiusMiles
+            ? .allowed
+            : .notNearPark(distanceMiles: distanceMiles)
     }
 }

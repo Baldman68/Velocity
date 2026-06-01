@@ -90,17 +90,7 @@ struct CoasterCheckInView: View {
                 .fill(Color.velocitySurfaceContainerHighest)
                 .frame(height: 320)
                 .overlay(
-                    Group {
-                        if let url = ride.mainImageURL, let imageURL = URL(string: url) {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "figure.roller.coaster")
-                                    .font(.system(size: 60))
-                                    .foregroundStyle(Color.nitroBlue.opacity(0.2))
-                            }
-                        }
-                    }
+                    CoasterImage(ride: ride)
                     .frame(height: 320)
                     .clipped()
                 )

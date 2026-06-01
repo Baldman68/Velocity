@@ -166,17 +166,7 @@ struct SelectCoasterView: View {
                 .fill(Color.velocitySurfaceContainerHighest)
                 .frame(height: 280)
                 .overlay(
-                    Group {
-                        if let url = ride.mainImageURL, let imageURL = URL(string: url) {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "figure.roller.coaster")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(Color.nitroBlue.opacity(0.2))
-                            }
-                        }
-                    }
+                    CoasterImage(ride: ride)
                     .frame(height: 280)
                     .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
                 )
@@ -268,19 +258,7 @@ struct SelectCoasterView: View {
                 .fill(Color.velocitySurfaceContainerHighest)
                 .frame(width: 72, height: 72)
                 .overlay(
-                    Group {
-                        if let url = ride.mainImageURL, let imageURL = URL(string: url) {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "figure.roller.coaster")
-                                    .foregroundStyle(Color.nitroBlue.opacity(0.3))
-                            }
-                        } else {
-                            Image(systemName: "figure.roller.coaster")
-                                .foregroundStyle(Color.nitroBlue.opacity(0.3))
-                        }
-                    }
+                    CoasterImage(ride: ride)
                     .frame(width: 72, height: 72)
                     .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
                 )

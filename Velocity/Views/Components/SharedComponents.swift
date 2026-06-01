@@ -51,6 +51,58 @@ struct StarRating: View {
     }
 }
 
+// MARK: - Coaster Image
+struct CoasterImage: View {
+    private let mainImageURL: String?
+    private let fallbackImageName: String
+
+    init(ride: Ride) {
+        self.mainImageURL = ride.mainImageURL
+        self.fallbackImageName = Self.genericImageName(seed: ride.id)
+    }
+
+    init(mainImageURL: String?, fallbackSeed: Int64? = nil) {
+        self.mainImageURL = mainImageURL
+        self.fallbackImageName = Self.genericImageName(seed: fallbackSeed ?? Int64.random(in: 0...Int64.max))
+    }
+
+    var body: some View {
+        if let urlString = mainImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !urlString.isEmpty,
+           let imageURL = URL(string: urlString) {
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .empty:
+                    fallbackImage
+                        .opacity(0.35)
+                case .failure:
+                    fallbackImage
+                @unknown default:
+                    fallbackImage
+                }
+            }
+        } else {
+            fallbackImage
+        }
+    }
+
+    private var fallbackImage: some View {
+        Image(fallbackImageName)
+            .resizable()
+            .scaledToFill()
+    }
+
+    private static func genericImageName(seed: Int64) -> String {
+        let names = ["GenericCoaster1", "GenericCoaster2", "GenericCoaster3"]
+        let mixed = UInt64(bitPattern: seed) &* 1_103_515_245 &+ 12_345
+        return names[Int(mixed % UInt64(names.count))]
+    }
+}
+
 // MARK: - Velocity Search Bar
 struct VelocitySearchBar: View {
     @Binding var text: String
@@ -145,19 +197,7 @@ struct CoasterCard: View {
                 Rectangle()
                     .fill(Color.velocitySurfaceContainerHighest)
 
-                if let url = ride.mainImageURL, let imageURL = URL(string: url) {
-                    AsyncImage(url: imageURL) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Image(systemName: "photo")
-                            .font(.system(size: 32))
-                            .foregroundStyle(Color.velocityOutlineVariant)
-                    }
-                } else {
-                    Image(systemName: "figure.roller.coaster")
-                        .font(.system(size: 32))
-                        .foregroundStyle(Color.nitroBlue.opacity(0.5))
-                }
+                CoasterImage(ride: ride)
             }
             .frame(width: 200, height: 140)
             .clipped()
