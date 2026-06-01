@@ -21,6 +21,7 @@ struct CoasterDetailView: View {
     @State private var editEmail = ""
     @State private var editImageURL = ""
     @State private var editReason = ""
+    @State private var editParkName = ""
     @State private var isSubmittingEdit = false
 
     var body: some View {
@@ -122,18 +123,24 @@ struct CoasterDetailView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     if let park = viewModel.ride?.park {
-                        Text("\(park.displayName) • \(park.city ?? ""), \(park.state ?? "")")
-                            .font(.bodyLarge())
-                            .foregroundStyle(Color.onSurfaceVariant)
+                        NavigationLink(destination: ParkDetailView(park: park)) {
+                            HStack(spacing: 4) {
+                                Text("\(park.displayName) • \(park.city ?? ""), \(park.state ?? "")")
+                                    .font(.bodyLarge())
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundStyle(Color.nitroBlue)
+                        }
                     }
                 }
                 .padding(.horizontal, VelocitySpacing.edgeMargin)
-                .padding(.bottom, VelocitySpacing.lg)
+                .padding(.bottom, VelocitySpacing.xl + VelocitySpacing.lg)
                 .frame(width: proxy.size.width, alignment: .leading)
             }
-            .frame(width: proxy.size.width, height: 530)
+            .frame(width: proxy.size.width, height: 560)
         }
-        .frame(height: 530)
+        .frame(height: 560)
     }
     // MARK: - Check-In Overlap Button (overlaps hero bottom by -24px)
     private var checkInOverlapButton: some View {
@@ -439,6 +446,7 @@ struct CoasterDetailView: View {
         editPhone = park?.phoneNumber ?? ""
         editEmail = park?.email ?? ""
         editImageURL = ride?.mainImageURL ?? ""
+        editParkName = ride?.park?.displayName ?? ""
         editReason = ""
         isSubmittingEdit = false
     }
@@ -697,9 +705,37 @@ struct CoasterDetailView: View {
                             )
                     )
 
+                    // Missing park callout
+                    if viewModel.ride?.park == nil {
+                        HStack(alignment: .top, spacing: VelocitySpacing.sm) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color.pulseOrange)
+                                .padding(.top, 2)
+                            Text("This coaster isn't linked to a park yet. If you know which park it belongs to, enter the park name below to help us out!")
+                                .font(.bodySmall())
+                                .foregroundStyle(Color.onSurfaceVariant)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(VelocitySpacing.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                .fill(Color.pulseOrange.opacity(0.08))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                        .stroke(Color.pulseOrange.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                    }
+
+                    // Park suggestion
+                    editSection(title: "PARK") {
+                        editField(label: "PARK NAME", icon: "building.columns", text: $editParkName)
+                    }
+
                     // Coaster Info section
                     editSection(title: "COASTER INFO") {
-                        editField(label: "NAME", icon: "figure.roller.coaster", text: $editName)
+                        editField(label: "NAME", icon: "mountain.2", text: $editName)
                         editField(label: "DESCRIPTION", icon: "text.alignleft", text: $editDescription, multiline: true)
                         editField(label: "IMAGE URL", icon: "photo", text: $editImageURL)
                     }
@@ -750,7 +786,11 @@ struct CoasterDetailView: View {
                             await viewModel.submitEditRequest(
                                 profileId: 1,
                                 name: editName.isEmpty ? nil : editName,
-                                description: [editDescription, editReason].filter { !$0.isEmpty }.joined(separator: " | Reason: "),
+                                description: [
+                                    editParkName.isEmpty ? nil : "Suggested Park: \(editParkName)",
+                                    editDescription.isEmpty ? nil : editDescription,
+                                    editReason.isEmpty ? nil : "Reason: \(editReason)"
+                                ].compactMap { $0 }.joined(separator: " | "),
                                 streetAddress: editStreetAddress.isEmpty ? nil : editStreetAddress,
                                 city: editCity.isEmpty ? nil : editCity,
                                 state: editState.isEmpty ? nil : editState,

@@ -113,7 +113,7 @@ struct ProfileView: View {
             StatCard(
                 label: "Coaster Count",
                 value: "\(viewModel.stats?.coasterCount ?? 0)",
-                icon: "figure.roller.coaster"
+                icon: "mountain.2"
             )
             StatCard(
                 label: "Max G-Force",
@@ -251,7 +251,7 @@ struct ProfileView: View {
                     .fill(Color.velocitySurfaceContainerHighest)
                     .frame(width: 56, height: 56)
 
-                Image(systemName: "figure.roller.coaster")
+                Image("nearby_empty")
                     .foregroundStyle(Color.nitroBlue.opacity(0.5))
             }
 

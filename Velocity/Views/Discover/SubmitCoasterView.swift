@@ -71,7 +71,7 @@ struct SubmitCoasterView: View {
 
                 // Coaster Info
                 sectionLabel("COASTER INFO")
-                formField(label: "COASTER NAME", icon: "figure.roller.coaster", text: $coasterName, required: true)
+                formField(label: "COASTER NAME", icon: "mountain.2", text: $coasterName, required: true)
                 formField(label: "DESCRIPTION", icon: "text.alignleft", text: $description, multiline: true)
                 formField(label: "MANUFACTURER", icon: "wrench.and.screwdriver", text: $manufacturer)
 

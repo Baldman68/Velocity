@@ -326,7 +326,7 @@ struct SelectCoasterView: View {
     // MARK: - Empty State
     private var emptyState: some View {
         VStack(spacing: VelocitySpacing.md) {
-            Image(systemName: "figure.roller.coaster")
+            Image("nearby_empty")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.nitroBlue.opacity(0.3))
             Text("NO COASTERS FOUND")
