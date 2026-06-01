@@ -33,7 +33,7 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
     private let rideService = RideService()
     private let checkInService = CheckInService()
     private let locationManager = CLLocationManager()
-    private let checkInRadiusMiles = 1.0
+    private let checkInRadiusMiles = 3.0
 
     override init() {
         super.init()
