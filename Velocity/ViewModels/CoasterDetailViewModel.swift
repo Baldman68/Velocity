@@ -25,6 +25,8 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
     var isLoading = false
     var showCheckInSheet = false
     var showReviewSheet = false
+    var showEditSheet = false
+    var editSubmitted = false
     var errorMessage: String?
     var checkInLocationStatus: CheckInLocationStatus = .waitingForRide
 
@@ -153,6 +155,44 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
     func voteOnReview(profileId: Int64, reviewId: Int64, approve: Bool) async {
         do {
             try await checkInService.voteOnReview(profileId: profileId, reviewId: reviewId, approve: approve)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func submitEditRequest(
+        profileId: Int64,
+        name: String?,
+        description: String?,
+        streetAddress: String?,
+        city: String?,
+        state: String?,
+        zip: String?,
+        country: String?,
+        phoneNumber: String?,
+        website: String?,
+        email: String?,
+        mainImageURL: String?
+    ) async {
+        guard let ride else { return }
+        do {
+            try await rideService.submitRideUpdateRequest(
+                profileId: profileId,
+                originalRideId: ride.id,
+                name: name,
+                description: description,
+                streetAddress: streetAddress,
+                city: city,
+                state: state,
+                zip: zip,
+                country: country,
+                phoneNumber: phoneNumber,
+                website: website,
+                email: email,
+                mainImageURL: mainImageURL
+            )
+            editSubmitted = true
+            showEditSheet = false
         } catch {
             errorMessage = error.localizedDescription
         }

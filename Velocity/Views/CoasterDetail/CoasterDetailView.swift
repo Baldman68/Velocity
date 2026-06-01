@@ -8,6 +8,21 @@ struct CoasterDetailView: View {
     @State private var reviewText = ""
     @State private var reviewStars: Int16 = 5
 
+    // Edit sheet fields
+    @State private var editName = ""
+    @State private var editDescription = ""
+    @State private var editStreetAddress = ""
+    @State private var editCity = ""
+    @State private var editState = ""
+    @State private var editZip = ""
+    @State private var editCountry = ""
+    @State private var editWebsite = ""
+    @State private var editPhone = ""
+    @State private var editEmail = ""
+    @State private var editImageURL = ""
+    @State private var editReason = ""
+    @State private var isSubmittingEdit = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -15,6 +30,7 @@ struct CoasterDetailView: View {
                 checkInOverlapButton
                 statsGrid
                 technicalDossier
+                suggestEditsButton
                 missionReports
             }
             .padding(.bottom, 100)
@@ -35,6 +51,7 @@ struct CoasterDetailView: View {
         .task { await viewModel.loadRide(id: rideId) }
         .sheet(isPresented: $viewModel.showCheckInSheet) { checkInSheet }
         .sheet(isPresented: $viewModel.showReviewSheet) { reviewSheet }
+        .sheet(isPresented: $viewModel.showEditSheet) { editCoasterSheet }
     }
 
     // MARK: - Hero Section (530px tall, badges, title)
@@ -361,6 +378,71 @@ struct CoasterDetailView: View {
         .padding(.top, VelocitySpacing.xl)
     }
 
+    // MARK: - Suggest Edits Button
+    private var suggestEditsButton: some View {
+        Button {
+            prepareEditFields()
+            viewModel.showEditSheet = true
+        } label: {
+            HStack(spacing: VelocitySpacing.sm) {
+                Image(systemName: "pencil.line")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.nitroBlue)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Suggest Edits")
+                        .font(.bodyLarge())
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.onSurface)
+                    Text("Help improve this coaster's data")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .padding(VelocitySpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .dark)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+        .padding(.top, VelocitySpacing.lg)
+    }
+
+    private func prepareEditFields() {
+        let ride = viewModel.ride
+        let park = ride?.park
+        editName = ride?.name ?? ""
+        editDescription = ride?.description ?? ""
+        editStreetAddress = park?.streetAddress ?? ""
+        editCity = park?.city ?? ""
+        editState = park?.state ?? ""
+        editZip = park?.zip ?? ""
+        editCountry = park?.country ?? ""
+        editWebsite = park?.website ?? ""
+        editPhone = park?.phoneNumber ?? ""
+        editEmail = park?.email ?? ""
+        editImageURL = ride?.mainImageURL ?? ""
+        editReason = ""
+        isSubmittingEdit = false
+    }
+
     // MARK: - Mission Reports (Reviews)
     private var missionReports: some View {
         VStack(alignment: .leading, spacing: VelocitySpacing.md) {
@@ -567,6 +649,230 @@ struct CoasterDetailView: View {
         }
         .presentationDetents([.large])
         .presentationBackground(Color.velocityBackground)
+    }
+
+    // MARK: - Edit Coaster Sheet
+    private var editCoasterSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: VelocitySpacing.lg) {
+                    // Header with park + coaster name
+                    VStack(spacing: VelocitySpacing.xs) {
+                        if let park = viewModel.ride?.park {
+                            Text(park.displayName.uppercased())
+                                .font(.labelCaps())
+                                .foregroundStyle(Color.onSurfaceVariant)
+                                .tracking(0.96)
+                        }
+                        Text(viewModel.ride?.name.uppercased() ?? "")
+                            .font(.headlineLarge())
+                            .foregroundStyle(Color.nitroBlue)
+                            .italic()
+                        Text("ID: \(viewModel.ride.map { String($0.id) } ?? "—")")
+                            .font(.labelCaps())
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .tracking(0.96)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, VelocitySpacing.sm)
+
+                    // Explanation banner
+                    HStack(alignment: .top, spacing: VelocitySpacing.sm) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.nitroBlue)
+                            .padding(.top, 2)
+                        Text("Submit corrections or updated details for this coaster. Our team will review your changes and update the data if valid.")
+                            .font(.bodySmall())
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(VelocitySpacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.card)
+                            .fill(Color.nitroBlue.opacity(0.08))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                    .stroke(Color.nitroBlue.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+
+                    // Coaster Info section
+                    editSection(title: "COASTER INFO") {
+                        editField(label: "NAME", icon: "figure.roller.coaster", text: $editName)
+                        editField(label: "DESCRIPTION", icon: "text.alignleft", text: $editDescription, multiline: true)
+                        editField(label: "IMAGE URL", icon: "photo", text: $editImageURL)
+                    }
+
+                    // Park Location section
+                    editSection(title: "PARK LOCATION") {
+                        editField(label: "STREET ADDRESS", icon: "mappin.circle", text: $editStreetAddress)
+                        HStack(spacing: VelocitySpacing.sm) {
+                            editField(label: "CITY", icon: "building.2", text: $editCity)
+                            editField(label: "STATE", icon: "map", text: $editState)
+                                .frame(width: 100)
+                        }
+                        HStack(spacing: VelocitySpacing.sm) {
+                            editField(label: "ZIP", icon: "number", text: $editZip)
+                                .frame(width: 120)
+                            editField(label: "COUNTRY", icon: "globe", text: $editCountry)
+                        }
+                    }
+
+                    // Contact section
+                    editSection(title: "CONTACT") {
+                        editField(label: "WEBSITE", icon: "link", text: $editWebsite)
+                        editField(label: "PHONE", icon: "phone", text: $editPhone)
+                        editField(label: "EMAIL", icon: "envelope", text: $editEmail)
+                    }
+
+                    // Reason for edit
+                    editSection(title: "REASON FOR EDIT") {
+                        TextField("Why are you suggesting this change?", text: $editReason, axis: .vertical)
+                            .font(.bodyMedium())
+                            .foregroundStyle(Color.onSurface)
+                            .lineLimit(3...6)
+                            .padding(VelocitySpacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                    .fill(Color.velocitySurfaceContainerLowest)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                            .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
+                                    )
+                            )
+                    }
+
+                    // Submit button
+                    Button {
+                        isSubmittingEdit = true
+                        Task {
+                            await viewModel.submitEditRequest(
+                                profileId: 1,
+                                name: editName.isEmpty ? nil : editName,
+                                description: [editDescription, editReason].filter { !$0.isEmpty }.joined(separator: " | Reason: "),
+                                streetAddress: editStreetAddress.isEmpty ? nil : editStreetAddress,
+                                city: editCity.isEmpty ? nil : editCity,
+                                state: editState.isEmpty ? nil : editState,
+                                zip: editZip.isEmpty ? nil : editZip,
+                                country: editCountry.isEmpty ? nil : editCountry,
+                                phoneNumber: editPhone.isEmpty ? nil : editPhone,
+                                website: editWebsite.isEmpty ? nil : editWebsite,
+                                email: editEmail.isEmpty ? nil : editEmail,
+                                mainImageURL: editImageURL.isEmpty ? nil : editImageURL
+                            )
+                            isSubmittingEdit = false
+                        }
+                    } label: {
+                        HStack(spacing: VelocitySpacing.xs) {
+                            if isSubmittingEdit {
+                                ProgressView().tint(Color.onNitroBlueContainer)
+                            } else {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 16))
+                            }
+                            Text("SUBMIT CHANGES")
+                                .font(.labelCaps())
+                                .tracking(0.96)
+                        }
+                        .foregroundStyle(Color.onNitroBlueContainer)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                                .fill(LinearGradient.nitroGradient)
+                        )
+                        .shadow(color: Color.nitroBlue.opacity(0.3), radius: 16, y: 4)
+                    }
+                    .disabled(isSubmittingEdit)
+
+                    // Admin review notice
+                    HStack(spacing: VelocitySpacing.xs) {
+                        Image(systemName: "shield.checkered")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.onSurfaceVariant)
+                        Text("Submissions are reviewed by the Velocity team.")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.onSurfaceVariant)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, VelocitySpacing.edgeMargin)
+                .padding(.bottom, VelocitySpacing.xl)
+            }
+            .background(Color.velocityBackground)
+            .scrollIndicators(.hidden)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("SUGGEST EDITS")
+                        .font(.headlineMedium())
+                        .foregroundStyle(Color.nitroBlue)
+                        .italic()
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { viewModel.showEditSheet = false }
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.velocityBackground)
+    }
+
+    // MARK: - Edit Sheet Helpers
+    private func editSection(title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.sm) {
+            Text(title)
+                .font(.labelCaps())
+                .foregroundStyle(Color.onSurfaceVariant)
+                .tracking(0.96)
+            content()
+        }
+    }
+
+    private func editField(label: String, icon: String, text: Binding<String>, multiline: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.base) {
+            HStack(spacing: VelocitySpacing.xs) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.nitroBlue)
+                    .frame(width: 20)
+                Text(label)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .tracking(0.96)
+            }
+
+            if multiline {
+                TextField(label.capitalized, text: text, axis: .vertical)
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurface)
+                    .lineLimit(3...6)
+                    .padding(VelocitySpacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                            .fill(Color.velocitySurfaceContainerLowest)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                    .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
+                            )
+                    )
+            } else {
+                TextField(label.capitalized, text: text)
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurface)
+                    .padding(VelocitySpacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                            .fill(Color.velocitySurfaceContainerLowest)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                    .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
+                            )
+                    )
+            }
+        }
     }
 }
 

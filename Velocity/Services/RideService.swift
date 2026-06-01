@@ -122,6 +122,163 @@ final class RideService {
             .value
     }
 
+    /// Submit a park request (suggest a new park)
+    func submitParkRequest(
+        profileId: Int64,
+        name: String,
+        city: String,
+        state: String,
+        zip: String?,
+        country: String?,
+        streetAddress: String?,
+        phoneNumber: String?,
+        website: String?,
+        email: String?,
+        latitude: String?,
+        longitude: String?
+    ) async throws {
+        struct NewParkRequest: Encodable {
+            let profileId: Int64
+            let name: String
+            let city: String
+            let state: String
+            let zip: String?
+            let country: String?
+            let streetAddress: String?
+            let phoneNumber: String?
+            let website: String?
+            let email: String?
+            let latitude: String?
+            let longitude: String?
+        }
+
+        try await client
+            .from("parkRequest")
+            .insert(NewParkRequest(
+                profileId: profileId,
+                name: name,
+                city: city,
+                state: state,
+                zip: zip,
+                country: country,
+                streetAddress: streetAddress,
+                phoneNumber: phoneNumber,
+                website: website,
+                email: email,
+                latitude: latitude,
+                longitude: longitude
+            ))
+            .execute()
+    }
+
+    /// Submit a ride request (suggest a new coaster at an existing park)
+    func submitRideRequest(
+        profileId: Int64,
+        parkId: Int64,
+        name: String,
+        description: String?,
+        manufacturer: String?,
+        gForce: Float?,
+        trackLength: Int16?,
+        height: Int16?,
+        speed: Int16?,
+        inversions: Int16?,
+        mainImageURL: String?
+    ) async throws {
+        struct NewRideRequest: Encodable {
+            let profileId: Int64
+            let parkId: Int64
+            let name: String
+            let description: String?
+            let manufacturer: String?
+            let gForce: Float?
+            let trackLength: Int16?
+            let height: Int16?
+            let speed: Int16?
+            let inversions: Int16?
+            let mainImageURL: String?
+        }
+
+        try await client
+            .from("rideRequest")
+            .insert(NewRideRequest(
+                profileId: profileId,
+                parkId: parkId,
+                name: name,
+                description: description,
+                manufacturer: manufacturer,
+                gForce: gForce,
+                trackLength: trackLength,
+                height: height,
+                speed: speed,
+                inversions: inversions,
+                mainImageURL: mainImageURL
+            ))
+            .execute()
+    }
+
+    /// Fetch all parks (for park picker)
+    func fetchAllParks() async throws -> [Park] {
+        try await client
+            .from("park")
+            .select()
+            .order("name")
+            .execute()
+            .value
+    }
+
+    /// Submit a ride update request
+    func submitRideUpdateRequest(
+        profileId: Int64,
+        originalRideId: Int64,
+        name: String?,
+        description: String?,
+        streetAddress: String?,
+        city: String?,
+        state: String?,
+        zip: String?,
+        country: String?,
+        phoneNumber: String?,
+        website: String?,
+        email: String?,
+        mainImageURL: String?
+    ) async throws {
+        struct NewUpdateRequest: Encodable {
+            let profileId: Int64
+            let originalRideId: Int64
+            let name: String?
+            let description: String?
+            let streetAddress: String?
+            let city: String?
+            let state: String?
+            let zip: String?
+            let country: String?
+            let phoneNumber: String?
+            let website: String?
+            let email: String?
+            let mainImageURL: String?
+        }
+
+        try await client
+            .from("rideUpdateRequest")
+            .insert(NewUpdateRequest(
+                profileId: profileId,
+                originalRideId: originalRideId,
+                name: name,
+                description: description,
+                streetAddress: streetAddress,
+                city: city,
+                state: state,
+                zip: zip,
+                country: country,
+                phoneNumber: phoneNumber,
+                website: website,
+                email: email,
+                mainImageURL: mainImageURL
+            ))
+            .execute()
+    }
+
     /// Fetch nearest park to a given location
     func fetchNearestPark(latitude: Double, longitude: Double) async throws -> (park: Park, distanceMiles: Double)? {
         let allParks: [Park] = try await client

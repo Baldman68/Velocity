@@ -4,7 +4,13 @@ struct DiscoverView: View {
     @State private var viewModel = DiscoverViewModel()
     @State private var showNoParkAlert = false
     @State private var showLocationRequiredAlert = false
+    @State private var showSubmitCoaster = false
+    @State private var showAddPark = false
+    @State private var showEditProfile = false
     private let sectionTitleFont = Font.custom("ArchivoNarrow-Bold", size: 28)
+    @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
+    @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
+    @AppStorage("customAvatarImageData") private var customAvatarImageData = Data()
 
     var body: some View {
         NavigationStack {
@@ -46,29 +52,42 @@ struct DiscoverView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text("VELOCITY")
-                        .font(.headlineMedium())
-                        .foregroundStyle(Color.nitroBlue)
-                        .italic()
-                        .tracking(-0.5)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("VELOCITY")
+                            .font(.custom("ArchivoNarrow-Bold", size: 20))
+                            .italic()
+                        Text("Coaster Chaser")
+                            .font(.system(size: 10, weight: .medium))
+                            .opacity(0.7)
+                    }
+                    .padding(.horizontal)
+                    .foregroundStyle(Color.nitroBlue)
+                    .fixedSize()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: VelocitySpacing.md) {
-                        Button {
-                            // TODO: focus search
+                    HStack(spacing: VelocitySpacing.sm) {
+                        Menu {
+                            Button {
+                                showSubmitCoaster = true
+                            } label: {
+                                Label("Suggest New Coaster", systemImage: "plus.circle")
+                            }
+                            Button {
+                                showAddPark = true
+                            } label: {
+                                Label("Suggest New Park", systemImage: "mappin.circle")
+                            }
                         } label: {
-                            Image(systemName: "magnifyingglass")
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 18))
                                 .foregroundStyle(Color.nitroBlue)
                         }
-                        Circle()
-                            .fill(Color.velocitySurfaceContainerHighest)
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(Color.onSurfaceVariant)
-                            )
-                            .overlay(Circle().stroke(Color.nitroBlue.opacity(0.2), lineWidth: 1))
+
+                        Button {
+                            showEditProfile = true
+                        } label: {
+                            discoverAvatarButton
+                        }
                     }
                 }
             }
@@ -84,7 +103,44 @@ struct DiscoverView: View {
             } message: {
                 Text("Location Services are not turned on for Velocity. You'll need to allow location access before you can check in at a park.")
             }
+            .navigationDestination(isPresented: $showSubmitCoaster) {
+                SubmitCoasterView()
+            }
+            .navigationDestination(isPresented: $showAddPark) {
+                AddParkView()
+            }
+            .navigationDestination(isPresented: $showEditProfile) {
+                EditProfileView()
+            }
         }
+    }
+
+    // MARK: - Avatar Button
+    private var discoverAvatarButton: some View {
+        ZStack {
+            Circle()
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(width: 32, height: 32)
+
+            if usesCustomAvatar, let img = UIImage(data: customAvatarImageData) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+            } else if let img = UIImage(named: storedAvatarName) {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+            } else {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+        }
+        .overlay(Circle().stroke(Color.nitroBlue.opacity(0.3), lineWidth: 1))
     }
 
     // MARK: - Search Field

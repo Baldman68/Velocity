@@ -18,6 +18,27 @@ final class ProfileService {
         return profiles.first
     }
 
+    /// Update profile fields
+    func updateProfile(id: Int64, firstName: String, lastName: String, publicUserName: String, avatarName: String?) async throws {
+        struct ProfileUpdate: Encodable {
+            let firstName: String
+            let lastName: String
+            let publicUserName: String
+            let avatarName: String?
+        }
+
+        try await client
+            .from("profile")
+            .update(ProfileUpdate(
+                firstName: firstName,
+                lastName: lastName,
+                publicUserName: publicUserName,
+                avatarName: avatarName
+            ))
+            .eq("id", value: String(id))
+            .execute()
+    }
+
     /// Fetch profile by ID
     func fetchProfile(id: Int64) async throws -> Profile {
         try await client

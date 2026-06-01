@@ -188,8 +188,8 @@ struct ProfileAchievement: Codable, Identifiable, Sendable {
     let achievement: Achievement?
 }
 
-// MARK: - Ride Request
-struct RideRequest: Codable, Identifiable, Sendable {
+// MARK: - Park Request (suggest a new park)
+struct ParkRequest: Codable, Identifiable, Sendable {
     let id: Int64
     let createdDate: Date?
     let profileId: Int64
@@ -211,6 +211,23 @@ struct RideRequest: Codable, Identifiable, Sendable {
     let thursdayHours: String?
     let fridayHours: String?
     let saturdayHours: String?
+}
+
+// MARK: - Ride Request (suggest a new coaster at an existing park)
+struct RideRequest: Codable, Identifiable, Sendable {
+    let id: Int64
+    let createdDate: Date?
+    let profileId: Int64
+    let parkId: Int64
+    let name: String
+    let description: String?
+    let manufacturer: String?
+    let gForce: Float?
+    let trackLength: Int16?
+    let height: Int16?
+    let speed: Int16?
+    let inversions: Int16?
+    let mainImageURL: String?
 }
 
 // MARK: - Ride Update Request
