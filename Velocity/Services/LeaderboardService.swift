@@ -105,4 +105,58 @@ final class LeaderboardService {
             )
         }
     }
+    /// Search profiles by public username
+    func searchUsers(query: String) async throws -> [Profile] {
+        try await client
+            .from("profile")
+            .select()
+            .ilike("publicUserName", pattern: "%\(query)%")
+            .limit(20)
+            .execute()
+            .value
+    }
+
+    /// Add a friend to the user's friends list
+    func addFriend(profileId: Int64, friendId: Int64) async throws {
+        // Fetch current friends list
+        let profile: Profile = try await client
+            .from("profile")
+            .select()
+            .eq("id", value: String(profileId))
+            .single()
+            .execute()
+            .value
+
+        var friends = profile.friends ?? []
+        guard !friends.contains(friendId) else { return }
+        friends.append(friendId)
+
+        struct FriendsUpdate: Encodable { let friends: [Int64] }
+        try await client
+            .from("profile")
+            .update(FriendsUpdate(friends: friends))
+            .eq("id", value: String(profileId))
+            .execute()
+    }
+
+    /// Remove a friend from the user's friends list
+    func removeFriend(profileId: Int64, friendId: Int64) async throws {
+        let profile: Profile = try await client
+            .from("profile")
+            .select()
+            .eq("id", value: String(profileId))
+            .single()
+            .execute()
+            .value
+
+        var friends = profile.friends ?? []
+        friends.removeAll { $0 == friendId }
+
+        struct FriendsUpdate: Encodable { let friends: [Int64] }
+        try await client
+            .from("profile")
+            .update(FriendsUpdate(friends: friends))
+            .eq("id", value: String(profileId))
+            .execute()
+    }
 }

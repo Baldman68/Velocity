@@ -2,6 +2,8 @@ import SwiftUI
 
 struct LeaderboardView: View {
     @State private var viewModel = LeaderboardViewModel()
+    @State private var friendToRemove: LeaderboardEntry?
+    @State private var showRemoveConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +25,11 @@ struct LeaderboardView: View {
                     if !viewModel.chasePack.isEmpty {
                         chasePackSection
                     }
+
+                    // Add Friends button (Friends tab only)
+                    if viewModel.selectedTab == .friends {
+                        addFriendsButton
+                    }
                 }
                 .padding(.top, VelocitySpacing.sm)
                 .padding(.bottom, 100)
@@ -39,6 +46,21 @@ struct LeaderboardView: View {
             }
             .toolbarBackground(Color.velocityBackground, for: .navigationBar)
             .task { await viewModel.loadLeaderboard() }
+            .sheet(isPresented: $viewModel.showAddFriendSheet) {
+                addFriendSheet
+            }
+            .alert("Remove Friend", isPresented: $showRemoveConfirmation) {
+                Button("Remove", role: .destructive) {
+                    if let friend = friendToRemove {
+                        Task {
+                            await viewModel.removeFriend(friendId: friend.profile.id)
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Remove \(friendToRemove?.profile.displayName ?? "this user") from your friends list?")
+            }
         }
     }
 
@@ -206,5 +228,182 @@ struct LeaderboardView: View {
                 .foregroundStyle(Color.onSurface)
         }
         .padding(.vertical, VelocitySpacing.sm)
+        .contextMenu {
+            if viewModel.selectedTab == .friends && entry.profile.id != viewModel.currentProfileId {
+                Button(role: .destructive) {
+                    friendToRemove = entry
+                    showRemoveConfirmation = true
+                } label: {
+                    Label("Remove Friend", systemImage: "person.badge.minus")
+                }
+            }
+        }
+    }
+
+    // MARK: - Add Friends Button
+    private var addFriendsButton: some View {
+        Button {
+            viewModel.showAddFriendSheet = true
+        } label: {
+            HStack(spacing: VelocitySpacing.xs) {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 16))
+                Text("FIND & ADD FRIENDS")
+                    .font(.labelCaps())
+                    .tracking(0.96)
+            }
+            .foregroundStyle(Color.nitroBlue)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, VelocitySpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .stroke(Color.nitroBlue.opacity(0.4), lineWidth: 1)
+            )
+        }
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+    }
+
+    // MARK: - Add Friend Sheet
+    private var addFriendSheet: some View {
+        NavigationStack {
+            VStack(spacing: VelocitySpacing.lg) {
+                // Search bar
+                HStack(spacing: VelocitySpacing.sm) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Color.onSurfaceVariant)
+                    TextField("Search by username...", text: $viewModel.friendSearchText)
+                        .font(.bodyMedium())
+                        .foregroundStyle(Color.onSurface)
+                        .onSubmit { Task { await viewModel.searchUsers() } }
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+                .padding(.horizontal, VelocitySpacing.md)
+                .padding(.vertical, VelocitySpacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                        .fill(Color.velocitySurfaceContainerLow)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                                .stroke(Color.velocityOutlineVariant, lineWidth: 1)
+                        )
+                )
+
+                // Results
+                if viewModel.isSearching {
+                    ProgressView().tint(Color.nitroBlue)
+                        .frame(maxWidth: .infinity, minHeight: 100)
+                } else if viewModel.searchResults.isEmpty && !viewModel.friendSearchText.isEmpty {
+                    VStack(spacing: VelocitySpacing.sm) {
+                        Image(systemName: "person.slash")
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color.onSurfaceVariant.opacity(0.4))
+                        Text("No users found")
+                            .font(.bodyMedium())
+                            .foregroundStyle(Color.onSurfaceVariant)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 100)
+                } else {
+                    ScrollView {
+                        VStack(spacing: VelocitySpacing.sm) {
+                            ForEach(viewModel.searchResults) { profile in
+                                searchResultRow(profile: profile)
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+            .padding(.top, VelocitySpacing.md)
+            .background(Color.velocityBackground)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("FIND FRIENDS")
+                        .font(.headlineMedium())
+                        .foregroundStyle(Color.nitroBlue)
+                        .italic()
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { viewModel.showAddFriendSheet = false }
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Color.velocityBackground)
+    }
+
+    private func searchResultRow(profile: Profile) -> some View {
+        let alreadyFriend = viewModel.isFriend(profile.id)
+
+        return HStack(spacing: VelocitySpacing.md) {
+            // Avatar
+            Circle()
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Text(profile.displayName.prefix(1).uppercased())
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.nitroBlue)
+                )
+
+            // Info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(profile.displayName)
+                    .font(.bodyLarge())
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.onSurface)
+                if let username = profile.publicUserName, !username.isEmpty {
+                    Text("@\(username)")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
+
+            Spacer()
+
+            // Add/Remove button
+            Button {
+                Task {
+                    if alreadyFriend {
+                        await viewModel.removeFriend(friendId: profile.id)
+                    } else {
+                        await viewModel.addFriend(friendId: profile.id)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: alreadyFriend ? "checkmark" : "plus")
+                        .font(.system(size: 12, weight: .bold))
+                    Text(alreadyFriend ? "ADDED" : "ADD")
+                        .font(.labelCaps())
+                        .tracking(0.96)
+                }
+                .foregroundStyle(alreadyFriend ? Color.onSurfaceVariant : Color.onNitroBlueContainer)
+                .padding(.horizontal, VelocitySpacing.md)
+                .padding(.vertical, VelocitySpacing.xs)
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.component)
+                        .fill(alreadyFriend ? Color.velocitySurfaceContainerHighest : Color.nitroBlue)
+                )
+            }
+        }
+        .padding(VelocitySpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                        .fill(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
     }
 }
