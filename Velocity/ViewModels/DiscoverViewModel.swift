@@ -130,6 +130,7 @@ final class DiscoverViewModel: NSObject, CLLocationManagerDelegate {
             }
         } catch {
             // Nearby is best-effort, don't show error
+            debugPrint(error)
         }
         isLoadingNearby = false
     }
