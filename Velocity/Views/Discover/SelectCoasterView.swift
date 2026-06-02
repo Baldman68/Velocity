@@ -97,15 +97,13 @@ struct SelectCoasterView: View {
 
     // MARK: - Stats Row
     private var statsRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: VelocitySpacing.sm) {
-                let status = parkOperatingStatus
-                statChip(label: "Park Status", value: status.value, icon: status.icon, color: status.color)
-                statChip(label: "Avg Wait", value: averageWaitLabel, icon: "timer", color: Color.nitroBlue)
-                statChip(label: "Weather", value: weatherLabel, icon: "thermometer.sun.fill", color: Color.pulseOrange)
-            }
-            .padding(.horizontal, VelocitySpacing.edgeMargin)
+        HStack(spacing: VelocitySpacing.sm) {
+            let status = parkOperatingStatus
+            statChip(label: "Park Status", value: status.value, icon: status.icon, color: status.color)
+            statChip(label: "Avg Wait", value: averageWaitLabel, icon: "timer", color: Color.nitroBlue)
+            statChip(label: "Weather", value: weatherLabel, icon: "thermometer.sun.fill", color: Color.pulseOrange)
         }
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
     }
 
     private func statChip(label: String, value: String, icon: String, color: Color) -> some View {
@@ -122,8 +120,11 @@ struct SelectCoasterView: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Color.onSurfaceVariant)
                 .tracking(0.96)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
-        .frame(width: 88, height: 88)
+        .frame(maxWidth: .infinity, minHeight: 90)
+        .padding(.vertical, VelocitySpacing.md)
         .background(
             RoundedRectangle(cornerRadius: VelocityRadius.card)
                 .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
@@ -164,11 +165,14 @@ struct SelectCoasterView: View {
             // Background image
             RoundedRectangle(cornerRadius: VelocityRadius.xl)
                 .fill(Color.velocitySurfaceContainerHighest)
+                .frame(maxWidth: .infinity)
                 .frame(height: 280)
                 .overlay(
                     CoasterImage(ride: ride)
-                    .frame(height: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 280)
+                        .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                        .clipped()
                 )
 
             // Gradient overlay
@@ -325,19 +329,47 @@ struct SelectCoasterView: View {
 
     // MARK: - Empty State
     private var emptyState: some View {
-        VStack(spacing: VelocitySpacing.md) {
-            Image("nearby_empty")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.nitroBlue.opacity(0.3))
-            Text("NO COASTERS FOUND")
-                .font(.headlineMedium())
-                .foregroundStyle(Color.onSurface)
-            Text("This park doesn't have any coasters in our database yet.")
-                .font(.bodyMedium())
-                .foregroundStyle(Color.onSurfaceVariant)
-                .multilineTextAlignment(.center)
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(maxWidth: .infinity)
+                .frame(height: 280)
+                .overlay(
+                    Image("nearby_empty")
+                        .resizable()
+                        .scaledToFill()
+                        .opacity(0.55)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 280)
+                        .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+                        .clipped()
+                        .accessibilityHidden(true)
+                )
+
+            LinearGradient(
+                colors: [.clear, Color.velocityBackground.opacity(0.85), Color.velocityBackground],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
+
+            VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+                Text("NO COASTERS FOUND")
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.onSurface)
+                Text("This park doesn't have any coasters in our database yet.")
+                    .font(.bodyMedium())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(VelocitySpacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(VelocitySpacing.xl)
+        .frame(maxWidth: .infinity)
+        .frame(height: 280)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+        .padding(.top, VelocitySpacing.lg)
     }
 
     // MARK: - Data Loading

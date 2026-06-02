@@ -5,6 +5,7 @@ struct CoasterDetailView: View {
     @State private var viewModel = CoasterDetailViewModel()
     @State private var checkInComment = ""
     @State private var checkInScore: Int16 = 5
+    @State private var checkInSeatRow = ""
     @State private var reviewText = ""
     @State private var reviewStars: Int16 = 5
 
@@ -526,6 +527,47 @@ struct CoasterDetailView: View {
                     }
                 }
 
+                // Seat Row
+                VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+                    Text("SEAT POSITION")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .tracking(0.96)
+
+                    HStack(spacing: VelocitySpacing.sm) {
+                        ForEach(["Front Row", "Back Row"], id: \.self) { row in
+                            Button {
+                                checkInSeatRow = checkInSeatRow == row ? "" : row
+                            } label: {
+                                Text(row.uppercased())
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(checkInSeatRow == row ? Color.onNitroBlue : Color.onSurfaceVariant)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, VelocitySpacing.xs)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                            .fill(checkInSeatRow == row ? Color.nitroBlue : Color.velocitySurfaceContainerHighest)
+                                    )
+                            }
+                        }
+                        TextField("Row #", text: $checkInSeatRow)
+                            .font(.statValue())
+                            .foregroundStyle(Color.nitroBlue)
+                            .keyboardType(.numberPad)
+                            .frame(width: 70)
+                            .padding(.horizontal, VelocitySpacing.sm)
+                            .padding(.vertical, VelocitySpacing.xs)
+                            .background(
+                                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                    .fill(Color.velocitySurfaceContainerLowest)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                            .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
+                                    )
+                            )
+                    }
+                }
+
                 // Comment
                 VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
                     Text("COMMENTS")
@@ -556,7 +598,8 @@ struct CoasterDetailView: View {
                             profileId: 1, // TODO: use actual profile ID
                             rideId: rideId,
                             comments: checkInComment.isEmpty ? nil : checkInComment,
-                            score: checkInScore
+                            score: checkInScore,
+                            seatRow: checkInSeatRow.isEmpty ? nil : checkInSeatRow
                         )
                     }
                 } label: {

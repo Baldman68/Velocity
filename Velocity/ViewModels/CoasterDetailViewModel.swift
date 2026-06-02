@@ -123,13 +123,14 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    func checkIn(profileId: Int64, rideId: Int64, comments: String?, score: Int16?) async {
+    func checkIn(profileId: Int64, rideId: Int64, comments: String?, score: Int16?, seatRow: String? = nil) async {
         do {
             _ = try await checkInService.checkIn(
                 profileId: profileId,
                 rideId: rideId,
                 comments: comments,
-                score: score
+                score: score,
+                seatRow: seatRow
             )
             showCheckInSheet = false
         } catch {

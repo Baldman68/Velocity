@@ -6,18 +6,19 @@ final class CheckInService {
     private let client = SupabaseManager.shared.client
 
     /// Create a new check-in
-    func checkIn(profileId: Int64, rideId: Int64, comments: String? = nil, score: Int16? = nil, waitTime: Int16? = nil) async throws -> ProfileRide {
+    func checkIn(profileId: Int64, rideId: Int64, comments: String? = nil, score: Int16? = nil, waitTime: Int16? = nil, seatRow: String? = nil) async throws -> ProfileRide {
         struct NewCheckIn: Encodable {
             let profileId: Int64
             let rideId: Int64
             let comments: String?
             let score: Int16?
             let waitTime: Int16?
+            let seatRow: String?
         }
 
         return try await client
             .from("profileRide")
-            .insert(NewCheckIn(profileId: profileId, rideId: rideId, comments: comments, score: score, waitTime: waitTime))
+            .insert(NewCheckIn(profileId: profileId, rideId: rideId, comments: comments, score: score, waitTime: waitTime, seatRow: seatRow))
             .select("*, ride(*, park(*))")
             .single()
             .execute()

@@ -67,6 +67,13 @@ struct CoasterImage: View {
     }
 
     var body: some View {
+        imageContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+    }
+
+    @ViewBuilder
+    private var imageContent: some View {
         if let urlString = mainImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
            !urlString.isEmpty,
            let imageURL = URL(string: urlString) {

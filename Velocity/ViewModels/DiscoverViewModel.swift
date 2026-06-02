@@ -124,9 +124,12 @@ final class DiscoverViewModel: NSObject, CLLocationManagerDelegate {
             let results = try await nearbyResult
             nearbyRides = results.map { NearbyRide(ride: $0.ride, distanceMiles: $0.distanceMiles) }
 
-            if let nearest = try await parkResult {
+            if let nearest = try await parkResult, nearest.distanceMiles <= 3.0 {
                 nearestPark = nearest.park
                 nearestParkDistance = nearest.distanceMiles
+            } else {
+                nearestPark = nil
+                nearestParkDistance = nil
             }
         } catch {
             // Nearby is best-effort, don't show error

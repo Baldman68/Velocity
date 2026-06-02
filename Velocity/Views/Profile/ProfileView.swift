@@ -252,7 +252,12 @@ struct ProfileView: View {
                     .frame(width: 56, height: 56)
 
                 Image("nearby_empty")
-                    .foregroundStyle(Color.nitroBlue.opacity(0.5))
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(0.5)
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
+                    .clipped()
             }
 
             VStack(alignment: .leading, spacing: 2) {

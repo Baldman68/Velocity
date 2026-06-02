@@ -5,6 +5,7 @@ struct CoasterCheckInView: View {
     let park: Park
     @State private var waitTimeMinutes: Double = 45
     @State private var missionLog: String = ""
+    @State private var selectedSeatRow: String = ""
     @State private var broadcastMission = true
     @State private var isSubmitting = false
     @State private var checkInComplete = false
@@ -25,6 +26,10 @@ struct CoasterCheckInView: View {
 
                     // Wait Time Report
                     waitTimeSection
+                        .padding(.top, VelocitySpacing.xl)
+
+                    // Seat Row
+                    seatRowSection
                         .padding(.top, VelocitySpacing.xl)
 
                     // Mission Log
@@ -88,11 +93,13 @@ struct CoasterCheckInView: View {
             // Hero image
             Rectangle()
                 .fill(Color.velocitySurfaceContainerHighest)
+                .frame(maxWidth: .infinity)
                 .frame(height: 320)
                 .overlay(
                     CoasterImage(ride: ride)
-                    .frame(height: 320)
-                    .clipped()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 320)
+                        .clipped()
                 )
 
             // Gradient overlay
@@ -137,7 +144,9 @@ struct CoasterCheckInView: View {
             .padding(.horizontal, VelocitySpacing.edgeMargin)
             .padding(.bottom, VelocitySpacing.lg)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: 320)
+        .clipped()
     }
 
     // MARK: - Stats Grid
@@ -240,6 +249,77 @@ struct CoasterCheckInView: View {
                 }
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
+        }
+    }
+
+    // MARK: - Seat Row Selection
+    private var seatRowSection: some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.md) {
+            HStack(spacing: VelocitySpacing.xs) {
+                Image(systemName: "chair.lounge")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.nitroBlue)
+                Text("SEAT POSITION")
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.onSurface)
+                Spacer()
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+
+            // Quick select: Front / Back
+            HStack(spacing: VelocitySpacing.sm) {
+                seatButton(label: "FRONT ROW", value: "Front Row", icon: "arrow.up.circle")
+                seatButton(label: "BACK ROW", value: "Back Row", icon: "arrow.down.circle")
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+
+            // Row number input
+            HStack(spacing: VelocitySpacing.sm) {
+                Text("OR ROW #")
+                    .font(.labelCaps())
+                    .foregroundStyle(Color.onSurfaceVariant)
+                    .tracking(0.96)
+                TextField("e.g. 3", text: $selectedSeatRow)
+                    .font(.statValue())
+                    .foregroundStyle(Color.nitroBlue)
+                    .keyboardType(.numberPad)
+                    .frame(width: 80)
+                    .padding(.horizontal, VelocitySpacing.md)
+                    .padding(.vertical, VelocitySpacing.xs)
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                            .fill(Color.velocitySurfaceContainerLowest)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                    .stroke(Color.velocityOutlineVariant.opacity(0.5), lineWidth: 1)
+                            )
+                    )
+                Spacer()
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+        }
+    }
+
+    private func seatButton(label: String, value: String, icon: String) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedSeatRow = selectedSeatRow == value ? "" : value
+            }
+        } label: {
+            HStack(spacing: VelocitySpacing.xs) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                Text(label)
+                    .font(.labelCaps())
+                    .tracking(0.96)
+            }
+            .foregroundStyle(selectedSeatRow == value ? Color.onNitroBlue : Color.onSurfaceVariant)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, VelocitySpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                    .fill(selectedSeatRow == value ? Color.nitroBlue : Color.velocitySurfaceContainerHighest)
+            )
         }
     }
 
@@ -402,7 +482,8 @@ struct CoasterCheckInView: View {
                 rideId: ride.id,
                 comments: missionLog.isEmpty ? nil : missionLog,
                 score: nil,
-                waitTime: Int16(waitTimeMinutes)
+                waitTime: Int16(waitTimeMinutes),
+                seatRow: selectedSeatRow.isEmpty ? nil : selectedSeatRow
             )
             withAnimation(.easeInOut(duration: 0.4)) {
                 checkInComplete = true
