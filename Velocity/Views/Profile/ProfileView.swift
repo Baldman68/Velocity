@@ -4,6 +4,7 @@ import UIKit
 
 struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
+    @State private var showSubscription = false
     @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
     @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
     @AppStorage("customAvatarImageData") private var customAvatarImageData = Data()
@@ -32,31 +33,42 @@ struct ProfileView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        // Settings
+                        showSubscription = true
                     } label: {
-                        Image(systemName: "gearshape")
-                            .foregroundStyle(Color.onSurfaceVariant)
+                        Image(systemName: "crown.fill")
+                            .foregroundStyle(Color.pulseOrange)
                     }
                 }
             }
             .toolbarBackground(Color.velocityBackground, for: .navigationBar)
             .task { await viewModel.loadProfile() }
+            .navigationDestination(isPresented: $showSubscription) {
+                SubscriptionView()
+            }
         }
     }
 
     // MARK: - Header
     private var headerSection: some View {
         VStack(spacing: VelocitySpacing.sm) {
-            // PRO badge
-            if viewModel.isPro {
-                Text("PRO")
+            // Subscription badge
+            Button {
+                showSubscription = true
+            } label: {
+                Text(viewModel.tierLabel)
                     .font(.labelCaps())
                     .tracking(1.5)
                     .foregroundStyle(.white)
                     .padding(.horizontal, VelocitySpacing.sm)
                     .padding(.vertical, VelocitySpacing.base)
                     .background(
-                        Capsule().fill(LinearGradient.nitroGradient)
+                        Capsule().fill(
+                            viewModel.isElite
+                                ? LinearGradient(colors: [Color.pulseOrange, Color(hex: "#cc4a00")], startPoint: .leading, endPoint: .trailing)
+                                : viewModel.isPro
+                                    ? LinearGradient.nitroGradient
+                                    : LinearGradient(colors: [Color.velocitySurfaceContainerHighest, Color.velocitySurfaceContainerHigh], startPoint: .leading, endPoint: .trailing)
+                        )
                     )
             }
 

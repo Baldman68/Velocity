@@ -16,7 +16,19 @@ final class ProfileViewModel {
     private let profileService = ProfileService()
 
     var isPro: Bool {
-        subscriptionName?.lowercased().contains("pro") == true
+        guard let name = subscriptionName?.lowercased() else { return false }
+        return name.contains("pro") || name.contains("elite")
+    }
+
+    var isElite: Bool {
+        guard let name = subscriptionName?.lowercased() else { return false }
+        return name.contains("elite")
+    }
+
+    var tierLabel: String {
+        if isElite { return "ELITE" }
+        if isPro { return "PRO" }
+        return "FREE"
     }
 
     func loadProfile() async {
@@ -40,6 +52,8 @@ final class ProfileViewModel {
                 if let subId = profile?.subscriptionTypeId {
                     let sub = try await profileService.fetchSubscription(id: subId)
                     subscriptionName = sub.subscriptionName
+                } else {
+                    subscriptionName = nil
                 }
             }
         } catch {

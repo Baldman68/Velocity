@@ -132,4 +132,23 @@ final class ProfileService {
             .execute()
             .value
     }
+
+    /// Fetch all subscription types
+    func fetchAllSubscriptionTypes() async throws -> [SubscriptionType] {
+        try await client
+            .from("subscriptionType")
+            .select()
+            .execute()
+            .value
+    }
+
+    /// Update a profile's subscription type
+    func updateSubscriptionType(profileId: Int64, subscriptionTypeId: Int64) async throws {
+        struct SubUpdate: Encodable { let subscriptionTypeId: Int64 }
+        try await client
+            .from("profile")
+            .update(SubUpdate(subscriptionTypeId: subscriptionTypeId))
+            .eq("id", value: String(profileId))
+            .execute()
+    }
 }

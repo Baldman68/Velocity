@@ -7,6 +7,8 @@ struct DiscoverView: View {
     @State private var showSubmitCoaster = false
     @State private var showAddPark = false
     @State private var showEditProfile = false
+    @State private var showSubscription = false
+    @State private var subscriptionService = SubscriptionService()
     private let sectionTitleFont = Font.custom("ArchivoNarrow-Bold", size: 28)
     @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
     @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
@@ -18,6 +20,11 @@ struct DiscoverView: View {
                 VStack(spacing: VelocitySpacing.xl) {
                     // Search Input
                     searchField
+
+                    // Subscription upgrade banner
+                    if subscriptionService.currentTier != .eliteMonthly && subscriptionService.currentTier != .eliteAnnual {
+                        subscriptionBanner
+                    }
 
                     // Location warning + Quick Action Card
                     VStack(spacing: VelocitySpacing.xs) {
@@ -92,7 +99,10 @@ struct DiscoverView: View {
                 }
             }
             .toolbarBackground(Color.velocitySurface.opacity(0.8), for: .navigationBar)
-            .task { await viewModel.loadInitialData() }
+            .task {
+                await viewModel.loadInitialData()
+                await subscriptionService.refreshCurrentTier()
+            }
             .alert("Not Near a Park", isPresented: $showNoParkAlert) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -111,6 +121,9 @@ struct DiscoverView: View {
             }
             .navigationDestination(isPresented: $showEditProfile) {
                 EditProfileView()
+            }
+            .navigationDestination(isPresented: $showSubscription) {
+                SubscriptionView()
             }
         }
     }
@@ -141,6 +154,60 @@ struct DiscoverView: View {
             }
         }
         .overlay(Circle().stroke(Color.nitroBlue.opacity(0.3), lineWidth: 1))
+    }
+
+    // MARK: - Subscription Banner
+    private var subscriptionBanner: some View {
+        Button {
+            showSubscription = true
+        } label: {
+            HStack(spacing: VelocitySpacing.sm) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(subscriptionService.currentTier == .free ? Color.nitroBlue.opacity(0.15) : Color.pulseOrange.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: subscriptionService.currentTier == .free ? "bolt.fill" : "arrow.up.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(subscriptionService.currentTier == .free ? Color.nitroBlue : Color.pulseOrange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(subscriptionService.currentTier == .free ? "UPGRADE TO PRO" : "UPGRADE TO ELITE")
+                        .font(.labelCaps())
+                        .foregroundStyle(subscriptionService.currentTier == .free ? Color.nitroBlue : Color.pulseOrange)
+                        .tracking(0.96)
+                    Text(subscriptionService.currentTier == .free
+                         ? "Unlock unlimited check-ins, stats & more"
+                         : "Get park planner, wait insights & exclusive perks")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .padding(VelocitySpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.card)
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.card)
+                            .fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .dark)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.card)
+                            .stroke((subscriptionService.currentTier == .free ? Color.nitroBlue : Color.pulseOrange).opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
     }
 
     // MARK: - Search Field
