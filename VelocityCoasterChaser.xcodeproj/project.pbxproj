@@ -11,16 +11,16 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		6DED98842FB3AF4900A42970 /* Velocity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Velocity.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6DED98842FB3AF4900A42970 /* VelocityCoasterChaser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VelocityCoasterChaser.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		6DA15CA52FC887B80000490D /* Exceptions for "Velocity" folder in "Velocity" target */ = {
+		6DA15CA52FC887B80000490D /* Exceptions for "Velocity" folder in "VelocityCoasterChaser" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 6DED98832FB3AF4900A42970 /* Velocity */;
+			target = 6DED98832FB3AF4900A42970 /* VelocityCoasterChaser */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -28,7 +28,7 @@
 		6DED98862FB3AF4900A42970 /* Velocity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				6DA15CA52FC887B80000490D /* Exceptions for "Velocity" folder in "Velocity" target */,
+				6DA15CA52FC887B80000490D /* Exceptions for "Velocity" folder in "VelocityCoasterChaser" target */,
 			);
 			path = Velocity;
 			sourceTree = "<group>";
@@ -58,7 +58,7 @@
 		6DED98852FB3AF4900A42970 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6DED98842FB3AF4900A42970 /* Velocity.app */,
+				6DED98842FB3AF4900A42970 /* VelocityCoasterChaser.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,9 +66,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6DED98832FB3AF4900A42970 /* Velocity */ = {
+		6DED98832FB3AF4900A42970 /* VelocityCoasterChaser */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6DED98912FB3AF4A00A42970 /* Build configuration list for PBXNativeTarget "Velocity" */;
+			buildConfigurationList = 6DED98912FB3AF4A00A42970 /* Build configuration list for PBXNativeTarget "VelocityCoasterChaser" */;
 			buildPhases = (
 				6DED98802FB3AF4900A42970 /* Sources */,
 				6DED98812FB3AF4900A42970 /* Frameworks */,
@@ -81,12 +81,12 @@
 			fileSystemSynchronizedGroups = (
 				6DED98862FB3AF4900A42970 /* Velocity */,
 			);
-			name = Velocity;
+			name = VelocityCoasterChaser;
 			packageProductDependencies = (
 				AA00000100010001AAAA0002 /* Supabase */,
 			);
 			productName = Velocity;
-			productReference = 6DED98842FB3AF4900A42970 /* Velocity.app */;
+			productReference = 6DED98842FB3AF4900A42970 /* VelocityCoasterChaser.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -104,7 +104,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 6DED987F2FB3AF4900A42970 /* Build configuration list for PBXProject "Velocity" */;
+			buildConfigurationList = 6DED987F2FB3AF4900A42970 /* Build configuration list for PBXProject "VelocityCoasterChaser" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -121,7 +121,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				6DED98832FB3AF4900A42970 /* Velocity */,
+				6DED98832FB3AF4900A42970 /* VelocityCoasterChaser */,
 			);
 		};
 /* End PBXProject section */
@@ -182,7 +182,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 9RL45TUYNL;
+				DEVELOPMENT_TEAM = 42MC3LP6F2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -246,7 +246,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 9RL45TUYNL;
+				DEVELOPMENT_TEAM = 42MC3LP6F2;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -275,12 +275,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9RL45TUYNL;
+				DEVELOPMENT_TEAM = 42MC3LP6F2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Velocity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Velocity Coaster Chaser";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take a selfie to use as your avatar.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Velocity uses your location to detect when you're at a park for instant check-ins and live wait times.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Velocity uses your location to confirm you are at a park before check-in.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -291,7 +292,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.micostechnologies.Velocity;
+				PRODUCT_BUNDLE_IDENTIFIER = com.micostechnologies.velocitycoasterchaser;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -310,12 +311,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9RL45TUYNL;
+				DEVELOPMENT_TEAM = 42MC3LP6F2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Velocity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Velocity Coaster Chaser";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take a selfie to use as your avatar.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Velocity uses your location to detect when you're at a park for instant check-ins and live wait times.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Velocity uses your location to confirm you are at a park before check-in.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -326,7 +328,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.micostechnologies.Velocity;
+				PRODUCT_BUNDLE_IDENTIFIER = com.micostechnologies.velocitycoasterchaser;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -341,7 +343,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6DED987F2FB3AF4900A42970 /* Build configuration list for PBXProject "Velocity" */ = {
+		6DED987F2FB3AF4900A42970 /* Build configuration list for PBXProject "VelocityCoasterChaser" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6DED988F2FB3AF4A00A42970 /* Debug */,
@@ -350,7 +352,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		6DED98912FB3AF4A00A42970 /* Build configuration list for PBXNativeTarget "Velocity" */ = {
+		6DED98912FB3AF4A00A42970 /* Build configuration list for PBXNativeTarget "VelocityCoasterChaser" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6DED98922FB3AF4A00A42970 /* Debug */,
