@@ -56,6 +56,9 @@ struct DiscoverView: View {
             }
             .background(Color.velocityBackground)
             .scrollIndicators(.hidden)
+            .safeAreaInset(edge: .bottom) {
+                BannerAdView()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

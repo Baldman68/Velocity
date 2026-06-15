@@ -35,6 +35,9 @@ struct LeaderboardView: View {
                 .padding(.bottom, 100)
             }
             .background(Color.velocityBackground)
+            .safeAreaInset(edge: .bottom) {
+                BannerAdView()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {

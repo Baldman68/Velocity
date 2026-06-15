@@ -7,11 +7,16 @@
 
 import SwiftUI
 import Supabase
+import GoogleMobileAds
 
 @main
 struct VelocityApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var authService = AuthService()
+
+    init() {
+        AdMobManager.configure()
+    }
 
     var body: some Scene {
         WindowGroup {

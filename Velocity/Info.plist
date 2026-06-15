@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-8245053297432454~2896678539</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Velocity uses this to show you relevant ads. Upgrade to PRO for an ad-free experience.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
