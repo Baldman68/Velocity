@@ -6,7 +6,11 @@ import AppTrackingTransparency
 import UIKit
 
 /// AdMob banner ad unit ID
+#if DEBUG
+private let adUnitID = "ca-app-pub-3940256099942544/2435281174"
+#else
 private let adUnitID = "ca-app-pub-8245053297432454/2177963005"
+#endif
 
 // MARK: - UIKit Banner Wrapper
 struct AdBannerRepresentable: UIViewRepresentable {
