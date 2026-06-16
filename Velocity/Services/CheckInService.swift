@@ -1,12 +1,46 @@
 import Foundation
 import Supabase
 
+/// Error thrown when a free user exceeds their monthly check-in limit
+struct CheckInLimitError: LocalizedError {
+    let used: Int
+    let limit: Int
+    var errorDescription: String? {
+        "You've used \(used)/\(limit) free check-ins this month. Upgrade to PRO for unlimited check-ins."
+    }
+}
+
 @MainActor
 final class CheckInService {
     private let client = SupabaseManager.shared.client
+    static let freeMonthlyLimit = 5
 
-    /// Create a new check-in
-    func checkIn(profileId: Int64, rideId: Int64, comments: String? = nil, score: Int16? = nil, waitTime: Int16? = nil, seatRow: String? = nil) async throws -> ProfileRide {
+    /// Count check-ins for a profile in the current calendar month
+    func fetchCheckInsThisMonth(profileId: Int64) async throws -> Int {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+
+        struct CountRow: Decodable { let id: Int64 }
+        let rows: [CountRow] = try await client
+            .from("profileRide")
+            .select("id")
+            .eq("profileId", value: String(profileId))
+            .gte("createdDate", value: startOfMonth)
+            .execute()
+            .value
+        return rows.count
+    }
+
+    /// Create a new check-in (enforces free tier limit)
+    func checkIn(profileId: Int64, rideId: Int64, comments: String? = nil, score: Int16? = nil, waitTime: Int16? = nil, seatRow: String? = nil, isPaidUser: Bool = false) async throws -> ProfileRide {
+        // Enforce free tier limit
+        if !isPaidUser {
+            let count = try await fetchCheckInsThisMonth(profileId: profileId)
+            if count >= Self.freeMonthlyLimit {
+                throw CheckInLimitError(used: count, limit: Self.freeMonthlyLimit)
+            }
+        }
         struct NewCheckIn: Encodable {
             let profileId: Int64
             let rideId: Int64

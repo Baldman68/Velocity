@@ -62,6 +62,17 @@ final class ProfileService {
             .value
     }
 
+    /// Fetch ALL check-ins for ride journal (no limit)
+    func fetchAllCheckIns(profileId: Int64) async throws -> [ProfileRide] {
+        try await client
+            .from("profileRide")
+            .select("*, ride(*, park(*))")
+            .eq("profileId", value: String(profileId))
+            .order("createdDate", ascending: false)
+            .execute()
+            .value
+    }
+
     /// Compute profile stats
     func fetchStats(profileId: Int64) async throws -> ProfileStats {
         // Get all check-ins with ride data
@@ -129,6 +140,48 @@ final class ProfileService {
             .select()
             .eq("id", value: String(id))
             .single()
+            .execute()
+            .value
+    }
+
+    // MARK: - Bucket List
+
+    func fetchBucketList(profileId: Int64) async throws -> [ParkBucketList] {
+        try await client
+            .from("parkBucketList")
+            .select()
+            .eq("profileId", value: String(profileId))
+            .execute()
+            .value
+    }
+
+    func addToBucketList(profileId: Int64, parkId: Int64) async throws {
+        struct NewEntry: Encodable {
+            let profileId: Int64
+            let parkId: Int64
+        }
+        try await client
+            .from("parkBucketList")
+            .insert(NewEntry(profileId: profileId, parkId: parkId))
+            .execute()
+    }
+
+    func removeFromBucketList(profileId: Int64, parkId: Int64) async throws {
+        try await client
+            .from("parkBucketList")
+            .delete()
+            .eq("profileId", value: String(profileId))
+            .eq("parkId", value: String(parkId))
+            .execute()
+    }
+
+    /// Fetch parks by IDs (for bucket list map pins)
+    func fetchParks(ids: [Int64]) async throws -> [Park] {
+        guard !ids.isEmpty else { return [] }
+        return try await client
+            .from("park")
+            .select()
+            .in("id", values: ids.map { String($0) })
             .execute()
             .value
     }

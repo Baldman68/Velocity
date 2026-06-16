@@ -5,6 +5,7 @@ import UIKit
 struct ProfileView: View {
     @State private var viewModel = ProfileViewModel()
     @State private var showSubscription = false
+    @State private var showJournal = false
     @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
     @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
     @AppStorage("customAvatarImageData") private var customAvatarImageData = Data()
@@ -15,6 +16,7 @@ struct ProfileView: View {
                 VStack(spacing: VelocitySpacing.lg) {
                     headerSection
                     statsGrid
+                    journalButton
                     achievementsSection
                     mapSection
                     recentActivitySection
@@ -47,6 +49,11 @@ struct ProfileView: View {
             .task { await viewModel.loadProfile() }
             .navigationDestination(isPresented: $showSubscription) {
                 SubscriptionView()
+            }
+            .navigationDestination(isPresented: $showJournal) {
+                if let profileId = viewModel.profile?.id {
+                    RideJournalView(profileId: profileId)
+                }
             }
         }
     }
@@ -117,6 +124,56 @@ struct ProfileView: View {
         .overlay(
             Circle().stroke(Color.nitroBlue, lineWidth: 2)
         )
+    }
+
+    // MARK: - Journal Button
+    private var journalButton: some View {
+        Button {
+            showJournal = true
+        } label: {
+            HStack(spacing: VelocitySpacing.sm) {
+                Image(systemName: "book.closed.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.nitroBlue)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("RIDE JOURNAL")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.onSurface)
+                        .tracking(0.96)
+                    Text("Stats, records & full ride history")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+
+                Spacer()
+
+                Text("\(viewModel.stats?.coasterCount ?? 0) RIDES")
+                    .font(.labelCaps())
+                    .foregroundStyle(Color.nitroBlue)
+                    .tracking(0.96)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.onSurfaceVariant)
+            }
+            .padding(VelocitySpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .dark)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .stroke(Color.nitroBlue.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
     }
 
     // MARK: - Stats Grid
@@ -211,17 +268,71 @@ struct ProfileView: View {
                     .foregroundStyle(Color.onSurfaceVariant)
                     .tracking(0.96)
                 Spacer()
-                Text("LIVE TRACKING")
-                    .font(.labelCaps())
-                    .foregroundStyle(Color.pulseOrange)
+
+                // Visited / Bucket List toggle
+                HStack(spacing: 0) {
+                    Button {
+                        viewModel.showMapVisited = true
+                    } label: {
+                        Text("VISITED")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(viewModel.showMapVisited ? .white : Color.onSurfaceVariant)
+                            .padding(.horizontal, VelocitySpacing.sm)
+                            .padding(.vertical, 4)
+                            .background(
+                                viewModel.showMapVisited
+                                    ? AnyShapeStyle(Color.nitroBlue)
+                                    : AnyShapeStyle(Color.clear)
+                            )
+                            .clipShape(Capsule())
+                    }
+                    Button {
+                        viewModel.showMapVisited = false
+                    } label: {
+                        Text("BUCKET LIST")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(!viewModel.showMapVisited ? .white : Color.onSurfaceVariant)
+                            .padding(.horizontal, VelocitySpacing.sm)
+                            .padding(.vertical, 4)
+                            .background(
+                                !viewModel.showMapVisited
+                                    ? AnyShapeStyle(Color.pulseOrange)
+                                    : AnyShapeStyle(Color.clear)
+                            )
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(2)
+                .background(Capsule().fill(Color.velocitySurfaceContainerHigh))
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+
+            // Count badge
+            HStack(spacing: VelocitySpacing.xs) {
+                Image(systemName: viewModel.showMapVisited ? "mappin.circle.fill" : "bookmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(viewModel.showMapVisited ? Color.nitroBlue : Color.pulseOrange)
+                Text(viewModel.showMapVisited
+                     ? "\(viewModel.visitedParkPins.count) PARKS VISITED"
+                     : "\(viewModel.bucketListPins.count) ON BUCKET LIST")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.onSurfaceVariant)
                     .tracking(0.96)
+                Spacer()
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
 
             Map {
-                // Markers would be added here based on visited parks
+                let pins = viewModel.showMapVisited ? viewModel.visitedParkPins : viewModel.bucketListPins
+                ForEach(pins) { pin in
+                    Marker(
+                        pin.park.displayName,
+                        coordinate: CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
+                    )
+                    .tint(pin.isBucketList ? Color.pulseOrange : Color.nitroBlue)
+                }
             }
-            .frame(height: 200)
+            .frame(height: 240)
             .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.card))
             .overlay(
                 RoundedRectangle(cornerRadius: VelocityRadius.card)

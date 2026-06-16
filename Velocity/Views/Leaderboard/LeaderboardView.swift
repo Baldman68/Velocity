@@ -52,6 +52,12 @@ struct LeaderboardView: View {
             .sheet(isPresented: $viewModel.showAddFriendSheet) {
                 addFriendSheet
             }
+            .alert("Friend Limit Reached", isPresented: $viewModel.showFriendLimitAlert) {
+                Button("Upgrade to PRO", role: .none) { }
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Free accounts can add up to 10 friends. Upgrade to Velocity PRO for unlimited friends!")
+            }
             .alert("Remove Friend", isPresented: $showRemoveConfirmation) {
                 Button("Remove", role: .destructive) {
                     if let friend = friendToRemove {

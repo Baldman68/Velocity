@@ -275,3 +275,32 @@ struct ProfileStats: Sendable {
     let parksVisited: Int
     let globalRank: Int
 }
+
+// MARK: - Park Bucket List
+struct ParkBucketList: Codable, Identifiable, Sendable {
+    let id: Int64
+    let createdDate: Date?
+    let profileId: Int64
+    let parkId: Int64
+}
+
+// MARK: - Park Visit Plan (ELITE)
+struct ParkVisitPlan: Codable, Identifiable, Sendable {
+    let id: Int64
+    let createdDate: Date?
+    let profileId: Int64
+    let parkId: Int64
+    let rideIds: [Int64]
+    let plannedDate: Date?
+    let name: String?
+}
+
+// MARK: - Map Park Pin (computed for profile map)
+struct MapParkPin: Identifiable {
+    let id: Int64
+    let park: Park
+    let rideCount: Int
+    let latitude: Double
+    let longitude: Double
+    let isBucketList: Bool
+}

@@ -9,13 +9,16 @@ struct ParkDetailView: View {
     @Environment(\.openURL) private var openURL
 
     private let rideService = RideService()
+    private let profileService = ProfileService()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
                 heroSection
+                bucketListButton
+                    .padding(.top, VelocitySpacing.md)
                 statsRow
-                    .padding(.top, VelocitySpacing.lg)
+                    .padding(.top, VelocitySpacing.md)
                 parkIntelSection
                     .padding(.top, VelocitySpacing.xl)
                 scheduleSection
@@ -51,7 +54,72 @@ struct ParkDetailView: View {
             }
         }
         .toolbarBackground(Color.velocitySurface.opacity(0.8), for: .navigationBar)
-        .task { await loadRides() }
+        .task {
+            await loadRides()
+            await loadBucketListState()
+        }
+    }
+
+    @State private var isOnBucketList = false
+    @State private var bucketListLoading = false
+
+    // MARK: - Bucket List Button
+    private var bucketListButton: some View {
+        Button {
+            Task { await toggleBucketList() }
+        } label: {
+            HStack(spacing: VelocitySpacing.xs) {
+                if bucketListLoading {
+                    ProgressView().tint(isOnBucketList ? Color.pulseOrange : Color.nitroBlue)
+                } else {
+                    Image(systemName: isOnBucketList ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 16))
+                }
+                Text(isOnBucketList ? "ON BUCKET LIST" : "ADD TO BUCKET LIST")
+                    .font(.labelCaps())
+                    .tracking(0.96)
+            }
+            .foregroundStyle(isOnBucketList ? Color.pulseOrange : Color.nitroBlue)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, VelocitySpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.component)
+                    .fill(isOnBucketList ? Color.pulseOrange.opacity(0.1) : Color.nitroBlue.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.component)
+                            .stroke((isOnBucketList ? Color.pulseOrange : Color.nitroBlue).opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .disabled(bucketListLoading)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+    }
+
+    private func loadBucketListState() async {
+        do {
+            guard let profile = try await profileService.fetchCurrentProfile() else { return }
+            let list = try await profileService.fetchBucketList(profileId: profile.id)
+            isOnBucketList = list.contains { $0.parkId == park.id }
+        } catch {
+            // Non-critical
+        }
+    }
+
+    private func toggleBucketList() async {
+        bucketListLoading = true
+        do {
+            guard let profile = try await profileService.fetchCurrentProfile() else { return }
+            if isOnBucketList {
+                try await profileService.removeFromBucketList(profileId: profile.id, parkId: park.id)
+                isOnBucketList = false
+            } else {
+                try await profileService.addToBucketList(profileId: profile.id, parkId: park.id)
+                isOnBucketList = true
+            }
+        } catch {
+            // Non-critical
+        }
+        bucketListLoading = false
     }
 
     // MARK: - Hero Section

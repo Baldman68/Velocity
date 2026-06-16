@@ -6,6 +6,7 @@ struct CoasterDetailView: View {
     @State private var checkInComment = ""
     @State private var checkInScore: Int16 = 5
     @State private var checkInSeatRow = ""
+    @State private var subscriptionService = SubscriptionService()
     @State private var reviewText = ""
     @State private var reviewStars: Int16 = 5
 
@@ -50,7 +51,16 @@ struct CoasterDetailView: View {
                     .tracking(-0.5)
             }
         }
-        .task { await viewModel.loadRide(id: rideId) }
+        .task {
+            await viewModel.loadRide(id: rideId)
+            await subscriptionService.refreshCurrentTier()
+        }
+        .alert("Check-In Limit Reached", isPresented: $viewModel.showCheckInLimitAlert) {
+            Button("Upgrade to PRO", role: .none) { }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("You've used all 5 free check-ins this month. Upgrade to Velocity PRO for unlimited check-ins!")
+        }
         .sheet(isPresented: $viewModel.showCheckInSheet) { checkInSheet }
         .sheet(isPresented: $viewModel.showReviewSheet) { reviewSheet }
         .sheet(isPresented: $viewModel.showEditSheet) { editCoasterSheet }
@@ -595,11 +605,12 @@ struct CoasterDetailView: View {
                 Button {
                     Task {
                         await viewModel.checkIn(
-                            profileId: 1, // TODO: use actual profile ID
+                            profileId: 1,
                             rideId: rideId,
                             comments: checkInComment.isEmpty ? nil : checkInComment,
                             score: checkInScore,
-                            seatRow: checkInSeatRow.isEmpty ? nil : checkInSeatRow
+                            seatRow: checkInSeatRow.isEmpty ? nil : checkInSeatRow,
+                            isPaidUser: subscriptionService.currentTier.isPaid
                         )
                     }
                 } label: {

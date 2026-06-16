@@ -9,6 +9,8 @@ struct CoasterCheckInView: View {
     @State private var broadcastMission = true
     @State private var isSubmitting = false
     @State private var checkInComplete = false
+    @State private var showCheckInLimit = false
+    @State private var subscriptionService = SubscriptionService()
     @Environment(\.dismiss) private var dismiss
 
     private let checkInService = CheckInService()
@@ -85,6 +87,13 @@ struct CoasterCheckInView: View {
             }
         }
         .toolbarBackground(Color.velocitySurface.opacity(0.8), for: .navigationBar)
+        .task { await subscriptionService.refreshCurrentTier() }
+        .alert("Check-In Limit Reached", isPresented: $showCheckInLimit) {
+            Button("Upgrade to PRO", role: .none) { /* navigate to subscription */ }
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("You've used all 5 free check-ins this month. Upgrade to Velocity PRO for unlimited check-ins!")
+        }
     }
 
     // MARK: - Hero Section
@@ -476,21 +485,21 @@ struct CoasterCheckInView: View {
     private func submitCheckIn() async {
         isSubmitting = true
         do {
-            // Using profileId 1 as placeholder — replace with actual auth when available
             _ = try await checkInService.checkIn(
                 profileId: 1,
                 rideId: ride.id,
                 comments: missionLog.isEmpty ? nil : missionLog,
                 score: nil,
                 waitTime: Int16(waitTimeMinutes),
-                seatRow: selectedSeatRow.isEmpty ? nil : selectedSeatRow
+                seatRow: selectedSeatRow.isEmpty ? nil : selectedSeatRow,
+                isPaidUser: subscriptionService.currentTier.isPaid
             )
             withAnimation(.easeInOut(duration: 0.4)) {
                 checkInComplete = true
             }
+        } catch is CheckInLimitError {
+            showCheckInLimit = true
         } catch {
-            // If check-in fails, still show success UI for demo
-            // In production, show error alert
             withAnimation(.easeInOut(duration: 0.4)) {
                 checkInComplete = true
             }

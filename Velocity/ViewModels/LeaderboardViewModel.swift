@@ -14,6 +14,8 @@ final class LeaderboardViewModel {
     var currentProfileId: Int64 = 1 // placeholder until auth
     var currentFriendIds: [Int64] = []
     var showAddFriendSheet = false
+    var showFriendLimitAlert = false
+    private var subscriptionServiceForGate = SubscriptionService()
 
     enum LeaderboardTab: String, CaseIterable {
         case global = "Global"
@@ -34,6 +36,7 @@ final class LeaderboardViewModel {
     func loadLeaderboard() async {
         isLoading = true
         errorMessage = nil
+        await subscriptionServiceForGate.refreshCurrentTier()
         do {
             // Load current profile's friends list
             if let profile = try await profileService.fetchCurrentProfile() {
@@ -72,10 +75,15 @@ final class LeaderboardViewModel {
     }
 
     func addFriend(friendId: Int64) async {
+        // Enforce free tier friend limit
+        if !subscriptionServiceForGate.currentTier.isPaid && currentFriendIds.count >= 10 {
+            showFriendLimitAlert = true
+            return
+        }
+
         do {
             try await service.addFriend(profileId: currentProfileId, friendId: friendId)
             currentFriendIds.append(friendId)
-            // Reload friends leaderboard
             if selectedTab == .friends {
                 await loadLeaderboard()
             }
