@@ -12,6 +12,9 @@ struct LeaderboardView: View {
                     // Tab Toggle
                     segmentToggle
 
+                    // Time Range Toggle
+                    timeRangeToggle
+
                     // Top 3 Podium
                     if viewModel.topThree.count >= 3 {
                         podiumSection
@@ -99,6 +102,36 @@ struct LeaderboardView: View {
         .padding(3)
         .background(
             Capsule().fill(Color.velocitySurfaceContainerHigh)
+        )
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+    }
+
+    // MARK: - Time Range Toggle
+    private var timeRangeToggle: some View {
+        HStack(spacing: 0) {
+            ForEach(LeaderboardTimeRange.allCases, id: \.self) { range in
+                Button {
+                    viewModel.selectedTimeRange = range
+                    Task { await viewModel.loadLeaderboard() }
+                } label: {
+                    Text(range.rawValue.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundStyle(viewModel.selectedTimeRange == range ? Color.nitroBlue : Color.onSurfaceVariant)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, VelocitySpacing.xs)
+                        .background(
+                            viewModel.selectedTimeRange == range
+                                ? Color.nitroBlue.opacity(0.15)
+                                : Color.clear
+                        )
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(2)
+        .background(
+            Capsule().fill(Color.velocitySurfaceContainerHigh.opacity(0.5))
         )
         .padding(.horizontal, VelocitySpacing.edgeMargin)
     }

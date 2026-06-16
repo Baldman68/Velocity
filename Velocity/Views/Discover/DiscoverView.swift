@@ -112,6 +112,11 @@ struct DiscoverView: View {
                 Text("You don't appear to be near any amusement parks. Head to a park to use Quick Check-In!")
             }
             .alert("Location Services Required", isPresented: $showLocationRequiredAlert) {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
                 Button("OK", role: .cancel) { }
             } message: {
                 Text("Location Services are not turned on for Velocity. You'll need to allow location access before you can check in at a park.")

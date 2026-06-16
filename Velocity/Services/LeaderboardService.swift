@@ -1,12 +1,30 @@
 import Foundation
 import Supabase
 
+// MARK: - Leaderboard Time Range
+enum LeaderboardTimeRange: String, CaseIterable {
+    case allTime = "All Time"
+    case monthly = "Monthly"
+    case weekly = "Weekly"
+
+    /// Returns the start date for filtering, or nil for all-time
+    var startDate: Date? {
+        let calendar = Calendar.current
+        let now = Date()
+        switch self {
+        case .allTime: return nil
+        case .monthly: return calendar.date(byAdding: .month, value: -1, to: now)
+        case .weekly: return calendar.date(byAdding: .weekOfYear, value: -1, to: now)
+        }
+    }
+}
+
 @MainActor
 final class LeaderboardService {
     private let client = SupabaseManager.shared.client
 
-    /// Fetch global leaderboard
-    func fetchGlobalLeaderboard(limit: Int = 50) async throws -> [LeaderboardEntry] {
+    /// Fetch global leaderboard with optional time range filter
+    func fetchGlobalLeaderboard(limit: Int = 50, timeRange: LeaderboardTimeRange = .allTime) async throws -> [LeaderboardEntry] {
         // Fetch all profiles
         let profiles: [Profile] = try await client
             .from("profile")
@@ -14,7 +32,7 @@ final class LeaderboardService {
             .execute()
             .value
 
-        // For each profile, count their rides
+        // For each profile, count their rides (optionally filtered by date)
         var entries: [(Profile, Int, ProfileRide?)] = []
         for profile in profiles {
             let rides: [ProfileRide] = try await client
@@ -26,14 +44,25 @@ final class LeaderboardService {
                 .execute()
                 .value
 
-            let count: [ProfileRide] = try await client
+            var countQuery = client
                 .from("profileRide")
                 .select("id")
                 .eq("profileId", value: String(profile.id))
+
+            if let startDate = timeRange.startDate {
+                let iso = ISO8601DateFormatter()
+                iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                countQuery = countQuery.gte("createdDate", value: iso.string(from: startDate))
+            }
+
+            let count: [ProfileRide] = try await countQuery
                 .execute()
                 .value
 
-            entries.append((profile, count.count, rides.first))
+            // Skip profiles with zero rides in the time range
+            if count.count > 0 {
+                entries.append((profile, count.count, rides.first))
+            }
         }
 
         // Sort by ride count descending
@@ -50,8 +79,8 @@ final class LeaderboardService {
         }
     }
 
-    /// Fetch friends leaderboard for a given profile
-    func fetchFriendsLeaderboard(profileId: Int64) async throws -> [LeaderboardEntry] {
+    /// Fetch friends leaderboard for a given profile with optional time range filter
+    func fetchFriendsLeaderboard(profileId: Int64, timeRange: LeaderboardTimeRange = .allTime) async throws -> [LeaderboardEntry] {
         // Get the user's friends list
         let profile: Profile = try await client
             .from("profile")
@@ -83,10 +112,18 @@ final class LeaderboardService {
                 .execute()
                 .value
 
-            let count: [ProfileRide] = try await client
+            var countQuery = client
                 .from("profileRide")
                 .select("id")
                 .eq("profileId", value: String(friendId))
+
+            if let startDate = timeRange.startDate {
+                let iso = ISO8601DateFormatter()
+                iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                countQuery = countQuery.gte("createdDate", value: iso.string(from: startDate))
+            }
+
+            let count: [ProfileRide] = try await countQuery
                 .execute()
                 .value
 

@@ -79,7 +79,10 @@ final class DiscoverViewModel: NSObject, CLLocationManagerDelegate {
     private func requestNearbyIfAuthorized() {
         let status = locationManager.authorizationStatus
         isLocationAuthorized = (status == .authorizedWhenInUse || status == .authorizedAlways)
-        if isLocationAuthorized {
+
+        if status == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
+        } else if isLocationAuthorized {
             locationManager.requestLocation()
         }
     }

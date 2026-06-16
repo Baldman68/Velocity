@@ -143,6 +143,28 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Check in and return the new profileRide ID (for photo upload)
+    func checkInAndReturnId(profileId: Int64, rideId: Int64, comments: String?, score: Int16?, seatRow: String? = nil, isPaidUser: Bool = false) async -> Int64? {
+        do {
+            let result = try await checkInService.checkIn(
+                profileId: profileId,
+                rideId: rideId,
+                comments: comments,
+                score: score,
+                seatRow: seatRow,
+                isPaidUser: isPaidUser
+            )
+            showCheckInSheet = false
+            return result.id
+        } catch is CheckInLimitError {
+            showCheckInLimitAlert = true
+            return nil
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     func submitReview(profileId: Int64, rideId: Int64, text: String, stars: Int16) async {
         do {
             let review = try await checkInService.submitReview(

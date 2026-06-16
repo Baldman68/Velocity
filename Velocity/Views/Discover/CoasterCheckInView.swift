@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct CoasterCheckInView: View {
     let ride: Ride
@@ -11,9 +12,13 @@ struct CoasterCheckInView: View {
     @State private var checkInComplete = false
     @State private var showCheckInLimit = false
     @State private var subscriptionService = SubscriptionService()
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedImage: UIImage?
+    @State private var isUploadingPhoto = false
     @Environment(\.dismiss) private var dismiss
 
     private let checkInService = CheckInService()
+    private let photoService = PhotoUploadService()
 
     var body: some View {
         ZStack {
@@ -32,6 +37,10 @@ struct CoasterCheckInView: View {
 
                     // Seat Row
                     seatRowSection
+                        .padding(.top, VelocitySpacing.xl)
+
+                    // Photo Upload (PRO only)
+                    photoSection
                         .padding(.top, VelocitySpacing.xl)
 
                     // Mission Log
@@ -332,6 +341,115 @@ struct CoasterCheckInView: View {
         }
     }
 
+    // MARK: - Photo Section
+    private var photoSection: some View {
+        VStack(alignment: .leading, spacing: VelocitySpacing.sm) {
+            HStack(spacing: VelocitySpacing.xs) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.nitroBlue)
+                Text("MISSION PHOTO")
+                    .font(.headlineMedium())
+                    .foregroundStyle(Color.onSurface)
+                Spacer()
+                if !subscriptionService.currentTier.isPaid {
+                    Text("PRO")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Color.nitroBlue)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.nitroBlue.opacity(0.15)))
+                }
+            }
+            .padding(.horizontal, VelocitySpacing.edgeMargin)
+
+            if subscriptionService.currentTier.isPaid {
+                if let image = selectedImage {
+                    // Show selected photo
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 180)
+                            .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.card))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                    .stroke(Color.nitroBlue.opacity(0.3), lineWidth: 1)
+                            )
+
+                        Button {
+                            selectedImage = nil
+                            selectedPhotoItem = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(Color.onSurface)
+                                .background(Circle().fill(Color.velocityBackground))
+                        }
+                        .padding(VelocitySpacing.xs)
+                    }
+                    .padding(.horizontal, VelocitySpacing.edgeMargin)
+                } else {
+                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                        HStack(spacing: VelocitySpacing.sm) {
+                            Image(systemName: "photo.badge.plus")
+                                .font(.system(size: 24))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Add Photo")
+                                    .font(.bodyLarge())
+                                    .fontWeight(.semibold)
+                                Text("JPG, PNG up to 10MB")
+                                    .font(.bodySmall())
+                            }
+                            Spacer()
+                        }
+                        .foregroundStyle(Color.nitroBlue)
+                        .padding(VelocitySpacing.lg)
+                        .background(
+                            RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
+                                .foregroundStyle(Color.nitroBlue.opacity(0.3))
+                        )
+                    }
+                    .padding(.horizontal, VelocitySpacing.edgeMargin)
+                    .onChange(of: selectedPhotoItem) { _, newItem in
+                        Task {
+                            if let data = try? await newItem?.loadTransferable(type: Data.self),
+                               let img = UIImage(data: data) {
+                                selectedImage = img
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Locked for free users
+                HStack(spacing: VelocitySpacing.sm) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 20))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Photo uploads are a PRO feature")
+                            .font(.bodyMedium())
+                            .fontWeight(.semibold)
+                        Text("Upgrade to attach photos to your check-ins")
+                            .font(.bodySmall())
+                    }
+                    Spacer()
+                }
+                .foregroundStyle(Color.onSurfaceVariant.opacity(0.5))
+                .padding(VelocitySpacing.lg)
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.card)
+                        .fill(Color.velocitySurfaceContainerLow)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: VelocityRadius.card)
+                                .stroke(Color.velocityOutlineVariant.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .padding(.horizontal, VelocitySpacing.edgeMargin)
+            }
+        }
+    }
+
     // MARK: - Mission Log
     private var missionLogSection: some View {
         VStack(alignment: .leading, spacing: VelocitySpacing.sm) {
@@ -485,7 +603,7 @@ struct CoasterCheckInView: View {
     private func submitCheckIn() async {
         isSubmitting = true
         do {
-            _ = try await checkInService.checkIn(
+            let checkIn = try await checkInService.checkIn(
                 profileId: 1,
                 rideId: ride.id,
                 comments: missionLog.isEmpty ? nil : missionLog,
@@ -494,6 +612,16 @@ struct CoasterCheckInView: View {
                 seatRow: selectedSeatRow.isEmpty ? nil : selectedSeatRow,
                 isPaidUser: subscriptionService.currentTier.isPaid
             )
+
+            // Upload photo if selected (PRO only)
+            if let image = selectedImage {
+                _ = try? await photoService.uploadCheckInPhoto(
+                    profileRideId: checkIn.id,
+                    profileId: 1,
+                    image: image
+                )
+            }
+
             withAnimation(.easeInOut(duration: 0.4)) {
                 checkInComplete = true
             }

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct CoasterDetailView: View {
     let rideId: Int64
@@ -9,6 +10,9 @@ struct CoasterDetailView: View {
     @State private var subscriptionService = SubscriptionService()
     @State private var reviewText = ""
     @State private var reviewStars: Int16 = 5
+    @State private var checkInPhotoItem: PhotosPickerItem?
+    @State private var checkInImage: UIImage?
+    private let photoService = PhotoUploadService()
 
     // Edit sheet fields
     @State private var editName = ""
@@ -203,14 +207,20 @@ struct CoasterDetailView: View {
                             .multilineTextAlignment(.leading)
                     }
 
-                    if viewModel.checkInLocationStatus == .locationPermissionNeeded {
+                    if viewModel.checkInLocationStatus == .locationPermissionNeeded || viewModel.checkInLocationStatus == .locationUnavailable {
                         Button {
-                            viewModel.requestLocationPermission()
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
                         } label: {
-                            Text("ENABLE LOCATION")
-                                .font(.labelCaps())
-                                .tracking(0.96)
-                                .foregroundStyle(Color.nitroBlue)
+                            HStack(spacing: VelocitySpacing.xs) {
+                                Image(systemName: "gearshape")
+                                    .font(.system(size: 12))
+                                Text("OPEN SETTINGS")
+                                    .font(.labelCaps())
+                                    .tracking(0.96)
+                            }
+                            .foregroundStyle(Color.nitroBlue)
                         }
                     }
                 }
@@ -600,11 +610,61 @@ struct CoasterDetailView: View {
                         )
                 }
 
+                // Photo (PRO only)
+                if subscriptionService.currentTier.isPaid {
+                    VStack(alignment: .leading, spacing: VelocitySpacing.xs) {
+                        Text("PHOTO")
+                            .font(.labelCaps())
+                            .foregroundStyle(Color.onSurfaceVariant)
+                            .tracking(0.96)
+
+                        if let img = checkInImage {
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: img)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(height: 120)
+                                    .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
+                                Button { checkInImage = nil; checkInPhotoItem = nil } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(Color.onSurface)
+                                        .background(Circle().fill(Color.velocityBackground))
+                                }
+                                .padding(4)
+                            }
+                        } else {
+                            PhotosPicker(selection: $checkInPhotoItem, matching: .images) {
+                                HStack {
+                                    Image(systemName: "photo.badge.plus")
+                                    Text("Add Photo")
+                                        .font(.bodySmall())
+                                }
+                                .foregroundStyle(Color.nitroBlue)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, VelocitySpacing.sm)
+                                .background(
+                                    RoundedRectangle(cornerRadius: VelocityRadius.component)
+                                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 3]))
+                                        .foregroundStyle(Color.nitroBlue.opacity(0.3))
+                                )
+                            }
+                            .onChange(of: checkInPhotoItem) { _, newItem in
+                                Task {
+                                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                                       let img = UIImage(data: data) {
+                                        checkInImage = img
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer()
 
                 Button {
                     Task {
-                        await viewModel.checkIn(
+                        let result = await viewModel.checkInAndReturnId(
                             profileId: 1,
                             rideId: rideId,
                             comments: checkInComment.isEmpty ? nil : checkInComment,
@@ -612,6 +672,11 @@ struct CoasterDetailView: View {
                             seatRow: checkInSeatRow.isEmpty ? nil : checkInSeatRow,
                             isPaidUser: subscriptionService.currentTier.isPaid
                         )
+                        if let checkInId = result, let img = checkInImage {
+                            _ = try? await photoService.uploadCheckInPhoto(
+                                profileRideId: checkInId, profileId: 1, image: img
+                            )
+                        }
                     }
                 } label: {
                     HStack(spacing: VelocitySpacing.xs) {
@@ -974,9 +1039,19 @@ struct CoasterDetailView: View {
 struct ReviewCard: View {
     let review: ProfileRideReview
 
+    /// Determines the subscription badge to display based on profile subscriptionTypeId
+    private var subscriptionBadge: (text: String, color: Color)? {
+        guard let subId = review.profile?.subscriptionTypeId else { return nil }
+        switch subId {
+        case 1, 2: return ("PRO", Color.nitroBlue)
+        case 3, 4: return ("ELITE", Color.pulseOrange)
+        default: return nil
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: VelocitySpacing.sm) {
-            // Header: avatar + name + time + stars
+            // Header: avatar + name + badge + time + stars
             HStack {
                 Circle()
                     .fill(Color.velocitySurfaceContainerHighest)
@@ -988,10 +1063,24 @@ struct ReviewCard: View {
                     )
 
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(review.profile?.displayName ?? "Anonymous")
-                        .font(.bodyMedium())
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.onSurface)
+                    HStack(spacing: VelocitySpacing.xs) {
+                        Text(review.profile?.displayName ?? "Anonymous")
+                            .font(.bodyMedium())
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.onSurface)
+
+                        if let badge = subscriptionBadge {
+                            Text(badge.text)
+                                .font(.system(size: 8, weight: .heavy))
+                                .tracking(0.8)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(badge.color)
+                                )
+                        }
+                    }
 
                     if let date = review.createdDate {
                         Text(date.relativeString.uppercased())

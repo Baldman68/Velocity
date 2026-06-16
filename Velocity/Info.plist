@@ -19,5 +19,9 @@
 	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8245053297432454~2896678539</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Velocity uses your location to find nearby parks, verify check-ins, and show you coasters in your area.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Velocity uses this to show you relevant ads. Upgrade to PRO for an ad-free experience.</string>
 </dict>
 </plist>

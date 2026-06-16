@@ -6,6 +6,7 @@ import Observation
 final class LeaderboardViewModel {
     var entries: [LeaderboardEntry] = []
     var selectedTab: LeaderboardTab = .global
+    var selectedTimeRange: LeaderboardTimeRange = .allTime
     var isLoading = false
     var errorMessage: String?
     var friendSearchText = ""
@@ -46,9 +47,9 @@ final class LeaderboardViewModel {
 
             switch selectedTab {
             case .global:
-                entries = try await service.fetchGlobalLeaderboard()
+                entries = try await service.fetchGlobalLeaderboard(timeRange: selectedTimeRange)
             case .friends:
-                entries = try await service.fetchFriendsLeaderboard(profileId: currentProfileId)
+                entries = try await service.fetchFriendsLeaderboard(profileId: currentProfileId, timeRange: selectedTimeRange)
             }
         } catch {
             errorMessage = error.localizedDescription
