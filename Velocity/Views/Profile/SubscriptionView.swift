@@ -41,6 +41,8 @@ struct SubscriptionView: View {
                         color: Color.nitroBlue,
                         monthlyProduct: subscriptionService.product(for: .proMonthly),
                         annualProduct: subscriptionService.product(for: .proAnnual),
+                        monthlyPrice: "$4.99",
+                        annualPrice: "$29.99",
                         features: [
                             "Unlimited check-ins",
                             "Advanced ride stats & journal",
@@ -58,6 +60,8 @@ struct SubscriptionView: View {
                         color: Color.pulseOrange,
                         monthlyProduct: subscriptionService.product(for: .eliteMonthly),
                         annualProduct: subscriptionService.product(for: .eliteAnnual),
+                        monthlyPrice: "$9.99",
+                        annualPrice: "$59.99",
                         features: [
                             "Everything in PRO",
                             "Park visit planner",
@@ -209,10 +213,14 @@ struct SubscriptionView: View {
         color: Color,
         monthlyProduct: Product?,
         annualProduct: Product?,
+        monthlyPrice: String,
+        annualPrice: String,
         features: [String],
         isCurrent: Bool
     ) -> some View {
         let activeProduct = billingAnnual ? annualProduct : monthlyProduct
+        let activePrice = activeProduct?.displayPrice ?? (billingAnnual ? annualPrice : monthlyPrice)
+        let billingPeriod = billingAnnual ? "year" : "month"
 
         return VStack(alignment: .leading, spacing: VelocitySpacing.md) {
             // Header
@@ -244,15 +252,13 @@ struct SubscriptionView: View {
             }
 
             // Price
-            if let product = activeProduct {
-                HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text(product.displayPrice)
-                        .font(.statValueLarge())
-                        .foregroundStyle(Color.onSurface)
-                    Text("/ \(billingAnnual ? "year" : "month")")
-                        .font(.bodySmall())
-                        .foregroundStyle(Color.onSurfaceVariant)
-                }
+            HStack(alignment: .lastTextBaseline, spacing: 0) {
+                Text(activePrice)
+                    .font(.statValueLarge())
+                    .foregroundStyle(Color.onSurface)
+                Text("/\(billingPeriod)")
+                    .font(.bodySmall())
+                    .foregroundStyle(Color.onSurfaceVariant)
             }
 
             // Divider
