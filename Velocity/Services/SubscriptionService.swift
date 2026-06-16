@@ -65,15 +65,15 @@ final class SubscriptionService {
     var isLoading = false
     var purchaseError: String?
 
-    private var transactionListener: Task<Void, Never>?
+    @ObservationIgnored private let transactionListener = SubscriptionTransactionListener()
     private let profileService = ProfileService()
 
     init() {
-        transactionListener = listenForTransactions()
+        transactionListener.start(listenForTransactions())
     }
 
     func cancel() {
-        transactionListener?.cancel()
+        transactionListener.cancel()
     }
 
     // MARK: - Load Products
@@ -204,5 +204,22 @@ final class SubscriptionService {
         products.filter { id in
             id.id == VelocityTier.eliteMonthly.rawValue || id.id == VelocityTier.eliteAnnual.rawValue
         }
+    }
+}
+
+private final class SubscriptionTransactionListener {
+    private var task: Task<Void, Never>?
+
+    func start(_ task: Task<Void, Never>) {
+        self.task = task
+    }
+
+    func cancel() {
+        task?.cancel()
+        task = nil
+    }
+
+    deinit {
+        task?.cancel()
     }
 }

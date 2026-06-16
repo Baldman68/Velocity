@@ -1,4 +1,7 @@
+import Foundation
+import ImageIO
 import SwiftUI
+import UIKit
 
 // MARK: - Glass Card (Glassmorphic container)
 struct GlassCard<Content: View>: View {
@@ -52,9 +55,33 @@ struct StarRating: View {
 }
 
 // MARK: - Coaster Image
+@MainActor
+private final class CoasterImageMemoryCache {
+    static let shared = CoasterImageMemoryCache()
+
+    private let cache = NSCache<NSString, UIImage>()
+
+    private init() {
+        cache.countLimit = 80
+        cache.totalCostLimit = 50 * 1024 * 1024
+    }
+
+    func image(for key: String) -> UIImage? {
+        cache.object(forKey: key as NSString)
+    }
+
+    func insert(_ image: UIImage, for key: String) {
+        cache.setObject(image, forKey: key as NSString, cost: image.memoryCost)
+    }
+}
+
 struct CoasterImage: View {
     private let mainImageURL: String?
     private let fallbackImageName: String
+    @Environment(\.displayScale) private var displayScale
+    @State private var remoteImage: UIImage?
+    @State private var loadedImageKey: String?
+    @State private var imageLoadFailed = false
 
     init(ride: Ride) {
         self.mainImageURL = ride.mainImageURL
@@ -67,30 +94,31 @@ struct CoasterImage: View {
     }
 
     var body: some View {
-        imageContent
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
+        GeometryReader { proxy in
+            imageContent(targetSize: proxy.size)
+                .frame(width: proxy.size.width, height: proxy.size.height)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
     }
 
     @ViewBuilder
-    private var imageContent: some View {
+    private func imageContent(targetSize: CGSize) -> some View {
         if let urlString = mainImageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
            !urlString.isEmpty,
            let imageURL = URL(string: urlString) {
-            AsyncImage(url: imageURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .empty:
-                    fallbackImage
-                        .opacity(0.35)
-                case .failure:
-                    fallbackImage
-                @unknown default:
-                    fallbackImage
-                }
+            let cacheKey = Self.cacheKey(for: imageURL, targetSize: targetSize, scale: displayScale)
+
+            if let remoteImage, loadedImageKey == cacheKey {
+                Image(uiImage: remoteImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                fallbackImage
+                    .opacity(imageLoadFailed ? 1 : 0.35)
+                    .task(id: cacheKey) {
+                        await loadRemoteImage(from: imageURL, cacheKey: cacheKey, targetSize: targetSize)
+                    }
             }
         } else {
             fallbackImage
@@ -103,10 +131,87 @@ struct CoasterImage: View {
             .scaledToFill()
     }
 
+    private func loadRemoteImage(from url: URL, cacheKey: String?, targetSize: CGSize) async {
+        guard let cacheKey else { return }
+        if loadedImageKey == cacheKey, remoteImage != nil { return }
+
+        loadedImageKey = cacheKey
+        remoteImage = nil
+        imageLoadFailed = false
+
+        if let cachedImage = CoasterImageMemoryCache.shared.image(for: cacheKey) {
+            remoteImage = cachedImage
+            return
+        }
+
+        do {
+            let maxPixelSize = Self.maxPixelSize(for: targetSize, scale: displayScale)
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            if let httpResponse = response as? HTTPURLResponse,
+               !(200..<300).contains(httpResponse.statusCode) {
+                throw CoasterImageLoadingError.invalidResponse
+            }
+
+            let image = try Self.downsampledImage(from: data, maxPixelSize: maxPixelSize, scale: displayScale)
+            guard !Task.isCancelled else { return }
+
+            CoasterImageMemoryCache.shared.insert(image, for: cacheKey)
+            remoteImage = image
+        } catch {
+            guard !Task.isCancelled else { return }
+            imageLoadFailed = true
+        }
+    }
+
+    private static func cacheKey(for url: URL, targetSize: CGSize, scale: CGFloat) -> String? {
+        let maxPixelSize = maxPixelSize(for: targetSize, scale: scale)
+        guard maxPixelSize > 1 else { return nil }
+        return "\(url.absoluteString)#\(Int(maxPixelSize))"
+    }
+
+    private static func maxPixelSize(for targetSize: CGSize, scale: CGFloat) -> CGFloat {
+        ceil(max(targetSize.width, targetSize.height) * scale)
+    }
+
+    private static func downsampledImage(from data: Data, maxPixelSize: CGFloat, scale: CGFloat) throws -> UIImage {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
+            throw CoasterImageLoadingError.invalidData
+        }
+
+        let thumbnailOptions = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maxPixelSize)),
+        ] as CFDictionary
+
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions) else {
+            throw CoasterImageLoadingError.decodeFailed
+        }
+
+        return UIImage(cgImage: cgImage, scale: scale, orientation: .up)
+    }
+
     private static func genericImageName(seed: Int64) -> String {
         let names = ["GenericCoaster1", "GenericCoaster2", "GenericCoaster3"]
         let mixed = UInt64(bitPattern: seed) &* 1_103_515_245 &+ 12_345
         return names[Int(mixed % UInt64(names.count))]
+    }
+}
+
+private enum CoasterImageLoadingError: Error {
+    case invalidData
+    case invalidResponse
+    case decodeFailed
+}
+
+private extension UIImage {
+    var memoryCost: Int {
+        let pixelsWide = Int(size.width * scale)
+        let pixelsHigh = Int(size.height * scale)
+        return pixelsWide * pixelsHigh * 4
     }
 }
 
