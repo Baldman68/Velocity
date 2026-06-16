@@ -17,6 +17,8 @@ struct ParkDetailView: View {
                 heroSection
                 bucketListButton
                     .padding(.top, VelocitySpacing.md)
+                parkPlannerLink
+                    .padding(.top, VelocitySpacing.sm)
                 statsRow
                     .padding(.top, VelocitySpacing.md)
                 parkIntelSection
@@ -191,6 +193,64 @@ struct ParkDetailView: View {
             .padding(.bottom, VelocitySpacing.lg)
         }
         .frame(height: 320)
+    }
+
+    // MARK: - Park Planner Link
+    private var parkPlannerLink: some View {
+        NavigationLink(destination: ParkPlannerView(park: park)) {
+            HStack(spacing: VelocitySpacing.sm) {
+                ZStack {
+                    Circle()
+                        .fill(Color.pulseOrange.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "pencil.and.list.clipboard")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.pulseOrange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PARK VISIT PLANNER")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.onSurface)
+                        .tracking(0.96)
+                    Text("Build your ride itinerary")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Text("ELITE")
+                        .font(.system(size: 8, weight: .heavy))
+                        .tracking(0.8)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.pulseOrange))
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
+            .padding(VelocitySpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .dark)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .stroke(Color.pulseOrange.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
     }
 
     // MARK: - Stats Row

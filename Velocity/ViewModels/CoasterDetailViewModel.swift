@@ -32,6 +32,7 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
 
     private let rideService = RideService()
     private let checkInService = CheckInService()
+    private let achievementService = AchievementService()
     private let locationManager = CLLocationManager()
     private let checkInRadiusMiles = 3.0
 
@@ -124,8 +125,10 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
     }
 
     var showCheckInLimitAlert = false
+    var newAchievements: [AchievementService.AwardedAchievement] = []
+    var showAchievementOverlay = false
 
-    func checkIn(profileId: Int64, rideId: Int64, comments: String?, score: Int16?, seatRow: String? = nil, isPaidUser: Bool = false) async {
+    func checkIn(profileId: Int64, rideId: Int64, comments: String?, score: Int16?, seatRow: String? = nil, isPaidUser: Bool = false, isElite: Bool = false) async {
         do {
             _ = try await checkInService.checkIn(
                 profileId: profileId,
@@ -136,6 +139,8 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
                 isPaidUser: isPaidUser
             )
             showCheckInSheet = false
+            // Evaluate achievements after successful check-in
+            await evaluateAchievements(profileId: profileId, isElite: isElite)
         } catch is CheckInLimitError {
             showCheckInLimitAlert = true
         } catch {
@@ -144,7 +149,7 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
     }
 
     /// Check in and return the new profileRide ID (for photo upload)
-    func checkInAndReturnId(profileId: Int64, rideId: Int64, comments: String?, score: Int16?, seatRow: String? = nil, isPaidUser: Bool = false) async -> Int64? {
+    func checkInAndReturnId(profileId: Int64, rideId: Int64, comments: String?, score: Int16?, seatRow: String? = nil, isPaidUser: Bool = false, isElite: Bool = false) async -> Int64? {
         do {
             let result = try await checkInService.checkIn(
                 profileId: profileId,
@@ -155,6 +160,8 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
                 isPaidUser: isPaidUser
             )
             showCheckInSheet = false
+            // Evaluate achievements after successful check-in
+            await evaluateAchievements(profileId: profileId, isElite: isElite)
             return result.id
         } catch is CheckInLimitError {
             showCheckInLimitAlert = true
@@ -162,6 +169,14 @@ final class CoasterDetailViewModel: NSObject, CLLocationManagerDelegate {
         } catch {
             errorMessage = error.localizedDescription
             return nil
+        }
+    }
+
+    private func evaluateAchievements(profileId: Int64, isElite: Bool) async {
+        let awarded = await achievementService.evaluateAndAward(profileId: profileId, isElite: isElite)
+        if !awarded.isEmpty {
+            newAchievements = awarded
+            showAchievementOverlay = true
         }
     }
 

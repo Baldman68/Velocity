@@ -36,6 +36,7 @@ struct CoasterDetailView: View {
                 heroSection
                 checkInOverlapButton
                 statsGrid
+                waitTimeInsightsLink
                 technicalDossier
                 suggestEditsButton
                 missionReports
@@ -68,6 +69,11 @@ struct CoasterDetailView: View {
         .sheet(isPresented: $viewModel.showCheckInSheet) { checkInSheet }
         .sheet(isPresented: $viewModel.showReviewSheet) { reviewSheet }
         .sheet(isPresented: $viewModel.showEditSheet) { editCoasterSheet }
+        .overlay {
+            if viewModel.showAchievementOverlay {
+                achievementOverlay
+            }
+        }
     }
 
     // MARK: - Hero Section (530px tall, badges, title)
@@ -470,6 +476,131 @@ struct CoasterDetailView: View {
         editParkName = ride?.park?.displayName ?? ""
         editReason = ""
         isSubmittingEdit = false
+    }
+
+    // MARK: - Achievement Overlay
+    private var achievementOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation { viewModel.showAchievementOverlay = false }
+                }
+
+            VStack(spacing: VelocitySpacing.lg) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(Color.pulseOrange)
+
+                Text("ACHIEVEMENT UNLOCKED!")
+                    .font(.headlineHero())
+                    .foregroundStyle(Color.pulseOrange)
+                    .italic()
+
+                ForEach(viewModel.newAchievements, id: \.achievement.id) { awarded in
+                    VStack(spacing: VelocitySpacing.xs) {
+                        Image(systemName: awarded.achievement.iconName)
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color.nitroBlue)
+                        Text(awarded.achievement.name.uppercased())
+                            .font(.headlineMedium())
+                            .foregroundStyle(Color.onSurface)
+                        if let desc = awarded.achievement.description {
+                            Text(desc)
+                                .font(.bodySmall())
+                                .foregroundStyle(Color.onSurfaceVariant)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    .padding(VelocitySpacing.md)
+                }
+
+                Button {
+                    withAnimation { viewModel.showAchievementOverlay = false }
+                } label: {
+                    Text("AWESOME!")
+                        .font(.labelCaps())
+                        .tracking(0.96)
+                        .foregroundStyle(Color.onNitroBlueContainer)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                                .fill(Color.nitroBlue)
+                        )
+                }
+            }
+            .padding(VelocitySpacing.xl)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .fill(Color.velocitySurfaceContainerLow)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .stroke(Color.pulseOrange.opacity(0.3), lineWidth: 2)
+                    )
+            )
+            .padding(.horizontal, VelocitySpacing.edgeMargin * 2)
+        }
+        .transition(.opacity)
+    }
+
+    // MARK: - Wait Time Insights Link
+    private var waitTimeInsightsLink: some View {
+        NavigationLink(destination: WaitTimeInsightsView(rideId: rideId, rideName: viewModel.ride?.name ?? "Coaster")) {
+            HStack(spacing: VelocitySpacing.sm) {
+                ZStack {
+                    Circle()
+                        .fill(Color.pulseOrange.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "clock.badge.checkmark")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.pulseOrange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("WAIT TIME INSIGHTS")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.onSurface)
+                        .tracking(0.96)
+                    Text("View crowd patterns & best times")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Text("ELITE")
+                        .font(.system(size: 8, weight: .heavy))
+                        .tracking(0.8)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.pulseOrange))
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
+            .padding(VelocitySpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                    .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                    .background(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .fill(.ultraThinMaterial)
+                            .environment(\.colorScheme, .dark)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                            .stroke(Color.pulseOrange.opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+        .padding(.top, VelocitySpacing.lg)
     }
 
     // MARK: - Mission Reports (Reviews)

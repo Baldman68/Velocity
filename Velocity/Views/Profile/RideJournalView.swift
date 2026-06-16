@@ -5,6 +5,8 @@ struct RideJournalView: View {
     @State private var viewModel = RideJournalViewModel()
     @State private var subscriptionService = SubscriptionService()
     @State private var showSubscription = false
+    @State private var csvFileURL: URL?
+    @State private var showShareSheet = false
     @Environment(\.dismiss) private var dismiss
 
     private var isPaid: Bool { subscriptionService.currentTier.isPaid }
@@ -52,6 +54,22 @@ struct RideJournalView: View {
                 }
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if isPaid && !viewModel.allCheckIns.isEmpty {
+                    Button {
+                        csvFileURL = generateCSV()
+                        if csvFileURL != nil {
+                            showShareSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.nitroBlue)
+                    }
+                }
+            }
+        }
         .toolbarBackground(Color.velocitySurface.opacity(0.8), for: .navigationBar)
         .task {
             await subscriptionService.refreshCurrentTier()
@@ -59,6 +77,11 @@ struct RideJournalView: View {
         }
         .navigationDestination(isPresented: $showSubscription) {
             SubscriptionView()
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = csvFileURL {
+                ShareSheet(items: [url])
+            }
         }
     }
 
@@ -467,4 +490,55 @@ struct RideJournalView: View {
                 )
         )
     }
+
+    // MARK: - CSV Export
+    private func generateCSV() -> URL? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+
+        var csv = "Date,Coaster,Park,Speed (MPH),Height (FT),G-Force,Inversions,Wait Time (min),Seat Row,Score,Comments\n"
+
+        for checkIn in viewModel.allCheckIns {
+            let date = checkIn.createdDate.map { dateFormatter.string(from: $0) } ?? ""
+            let coaster = escapeCSV(checkIn.ride?.name ?? "")
+            let park = escapeCSV(checkIn.ride?.park?.name ?? "")
+            let speed = checkIn.ride?.speed.map { "\($0)" } ?? ""
+            let height = checkIn.ride?.height.map { "\($0)" } ?? ""
+            let gForce = checkIn.ride?.gForce.map { String(format: "%.1f", $0) } ?? ""
+            let inversions = checkIn.ride?.inversions.map { "\($0)" } ?? ""
+            let waitTime = checkIn.waitTime.map { "\($0)" } ?? ""
+            let seatRow = escapeCSV(checkIn.seatRow ?? "")
+            let score = checkIn.score.map { "\($0)" } ?? ""
+            let comments = escapeCSV(checkIn.comments ?? "")
+
+            csv += "\(date),\(coaster),\(park),\(speed),\(height),\(gForce),\(inversions),\(waitTime),\(seatRow),\(score),\(comments)\n"
+        }
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("VelocityRideJournal.csv")
+        do {
+            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
+            return tempURL
+        } catch {
+            return nil
+        }
+    }
+
+    private func escapeCSV(_ value: String) -> String {
+        if value.contains(",") || value.contains("\"") || value.contains("\n") {
+            return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
+        }
+        return value
+    }
+}
+
+// MARK: - Share Sheet (UIKit wrapper)
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
