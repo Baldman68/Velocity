@@ -13,6 +13,9 @@ struct DiscoverView: View {
     @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
     @AppStorage("usesCustomAvatar") private var usesCustomAvatar = false
     @AppStorage("customAvatarImageData") private var customAvatarImageData = Data()
+    private var appMarketingVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "--"
+    }
 
     var body: some View {
         NavigationStack {
@@ -673,6 +676,12 @@ struct DiscoverView: View {
                 }
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
+
+            Text("Version \(appMarketingVersion)")
+                .font(.bodySmall())
+                .foregroundStyle(Color.onSurfaceVariant.opacity(0.5))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, VelocitySpacing.edgeMargin)
         }
     }
 
