@@ -3,7 +3,6 @@ import SwiftUI
 struct LocationAccessView: View {
     var onBack: () -> Void
     var onEnable: () -> Void
-    var onSkip: () -> Void
 
     @State private var showIllustration = false
     @State private var showText = false
@@ -89,7 +88,7 @@ struct LocationAccessView: View {
                     HStack(spacing: VelocitySpacing.sm) {
                         Image(systemName: "location.fill")
                             .font(.system(size: 18))
-                        Text("Enable Location")
+                        Text("Continue")
                             .font(.labelCaps())
                             .tracking(2)
                     }
@@ -100,12 +99,6 @@ struct LocationAccessView: View {
                     .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.xl))
                     .shadow(color: Color.nitroBlue.opacity(0.2), radius: 12, y: 4)
                 }
-
-                Button("Not Now", action: onSkip)
-                    .font(.labelCaps())
-                    .foregroundStyle(Color.onSurfaceVariant)
-                    .tracking(2)
-                    .frame(height: 48)
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
             .padding(.bottom, VelocitySpacing.xl)

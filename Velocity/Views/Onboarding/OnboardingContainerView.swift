@@ -50,8 +50,7 @@ struct OnboardingContainerView: View {
                     case .location:
                         LocationAccessView(
                             onBack: { retreat() },
-                            onEnable: { requestLocationPermission() },
-                            onSkip: { advance() }
+                            onEnable: { requestLocationPermission() }
                         )
                     case .notifications:
                         NotificationsPermissionView(

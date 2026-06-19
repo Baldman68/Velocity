@@ -101,6 +101,20 @@ struct SubscriptionView: View {
                     .foregroundStyle(Color.onSurfaceVariant.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, VelocitySpacing.md)
+
+                // Legal links
+                HStack(spacing: VelocitySpacing.lg) {
+                    Link(destination: URL(string: "https://velocitycoasterchaser.com/privacy")!) {
+                        Text("Privacy Policy")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.nitroBlue)
+                    }
+                    Link(destination: URL(string: "https://velocitycoasterchaser.com/terms")!) {
+                        Text("Terms of Use (EULA)")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.nitroBlue)
+                    }
+                }
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
             .padding(.bottom, VelocitySpacing.xl)

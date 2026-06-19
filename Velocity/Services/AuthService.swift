@@ -165,6 +165,27 @@ final class AuthService {
         try await client.auth.signOut()
     }
 
+    // MARK: - Delete Account
+
+    /// Permanently deletes the current user's profile row and signs them out.
+    /// The Supabase auth user is removed by a database trigger or admin API.
+    func deleteAccount() async throws {
+        guard let userId = currentUserId else { return }
+
+        // Delete the profile row (cascades to related data via FK constraints)
+        try await client
+            .from("profile")
+            .delete()
+            .eq("userId", value: userId)
+            .execute()
+
+        // Clear any pending onboarding data
+        clearPendingProfile()
+
+        // Sign out locally
+        try await client.auth.signOut()
+    }
+
     // MARK: - Private
 
     private func savePendingProfile(

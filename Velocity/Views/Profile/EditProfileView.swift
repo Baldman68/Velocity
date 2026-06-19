@@ -12,8 +12,12 @@ struct EditProfileView: View {
     @State private var isSaving = false
     @State private var saved = false
     @State private var errorMessage: String?
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
     @AppStorage("selectedAvatarName") private var storedAvatarName = "avatar00"
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = true
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthService.self) private var authService
 
     private let profileService = ProfileService()
 
@@ -75,6 +79,9 @@ struct EditProfileView: View {
                                 .foregroundStyle(Color.onSurfaceVariant)
                         }
                     }
+
+                    // Delete Account
+                    deleteAccountSection
                 }
             }
             .padding(.horizontal, VelocitySpacing.edgeMargin)
@@ -100,6 +107,14 @@ struct EditProfileView: View {
         }
         .toolbarBackground(Color.velocitySurface.opacity(0.8), for: .navigationBar)
         .task { await loadProfile() }
+        .alert("Delete Account", isPresented: $showDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will permanently delete your account and all associated data. This action cannot be undone.")
+        }
     }
 
     // MARK: - Avatar Section
@@ -276,6 +291,54 @@ struct EditProfileView: View {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    // MARK: - Delete Account Section
+    private var deleteAccountSection: some View {
+        VStack(spacing: VelocitySpacing.sm) {
+            sectionLabel("DANGER ZONE")
+
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                HStack(spacing: VelocitySpacing.xs) {
+                    if isDeleting {
+                        ProgressView().tint(Color.velocityError)
+                    } else {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 14))
+                    }
+                    Text("DELETE ACCOUNT")
+                        .font(.labelCaps())
+                        .tracking(0.96)
+                }
+                .foregroundStyle(Color.velocityError)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.xl)
+                        .stroke(Color.velocityError.opacity(0.5), lineWidth: 1)
+                )
+            }
+            .disabled(isDeleting)
+
+            Text("Permanently deletes your account, check-ins, reviews, and all associated data.")
+                .font(.system(size: 10))
+                .foregroundStyle(Color.onSurfaceVariant.opacity(0.5))
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, VelocitySpacing.lg)
+    }
+
+    private func deleteAccount() async {
+        isDeleting = true
+        do {
+            try await authService.deleteAccount()
+            hasCompletedOnboarding = false
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isDeleting = false
     }
 
     private func save() async {
