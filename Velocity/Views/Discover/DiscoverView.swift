@@ -24,36 +24,40 @@ struct DiscoverView: View {
                     // Search Input
                     searchField
 
-                    // Subscription upgrade banner
-                    if subscriptionService.currentTier != .eliteMonthly && subscriptionService.currentTier != .eliteAnnual {
-                        subscriptionBanner
-                    }
-
-                    // Location warning + Quick Action Card
-                    VStack(spacing: VelocitySpacing.xs) {
-                        if !viewModel.isLocationAuthorized {
-                            HStack(spacing: 4) {
-                                Image(systemName: "location.slash.fill")
-                                    .font(.system(size: 11))
-                                Text("Enable Location Services to check in at parks and see nearby coasters.")
-                                    .font(.system(size: 12, weight: .medium))
-                            }
-                            .foregroundStyle(Color.velocityError)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, VelocitySpacing.edgeMargin)
+                    if viewModel.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        // Subscription upgrade banner
+                        if subscriptionService.currentTier != .eliteMonthly && subscriptionService.currentTier != .eliteAnnual {
+                            subscriptionBanner
                         }
 
-                        quickActionCard
+                        // Location warning + Quick Action Card
+                        VStack(spacing: VelocitySpacing.xs) {
+                            if !viewModel.isLocationAuthorized {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "location.slash.fill")
+                                        .font(.system(size: 11))
+                                    Text("Enable Location Services to check in at parks and see nearby coasters.")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundStyle(Color.velocityError)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, VelocitySpacing.edgeMargin)
+                            }
+
+                            quickActionCard
+                        }
+
+                        // Nearby Rides
+                        nearbySection
+
+                        // Trending Now Carousel
+                        trendingSection
+
+                        // Top Rated Worldwide
+                        topRatedSection
+                    } else {
+                        searchResultsSection
                     }
-
-                    // Nearby Rides
-                    nearbySection
-
-                    // Trending Now Carousel
-                    trendingSection
-
-                    // Top Rated Worldwide
-                    topRatedSection
                 }
                 .padding(.bottom, 100)
             }
@@ -108,6 +112,9 @@ struct DiscoverView: View {
             .task {
                 await viewModel.loadInitialData()
                 await subscriptionService.refreshCurrentTier()
+            }
+            .onChange(of: viewModel.searchText) { _, _ in
+                viewModel.onSearchTextChanged()
             }
             .alert("Not Near a Park", isPresented: $showNoParkAlert) {
                 Button("OK", role: .cancel) { }
@@ -230,6 +237,17 @@ struct DiscoverView: View {
                 .font(.bodyMedium())
                 .foregroundStyle(Color.onSurface)
                 .onSubmit { Task { await viewModel.search() } }
+
+            if !viewModel.searchText.isEmpty {
+                Button {
+                    viewModel.searchText = ""
+                    viewModel.searchResults = []
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
         }
         .padding(.horizontal, VelocitySpacing.md)
         .padding(.vertical, VelocitySpacing.md)
@@ -243,6 +261,99 @@ struct DiscoverView: View {
         )
         .padding(.horizontal, VelocitySpacing.edgeMargin)
         .padding(.top, VelocitySpacing.lg)
+    }
+
+    // MARK: - Search Results
+    private var searchResultsSection: some View {
+        VStack(spacing: VelocitySpacing.sm) {
+            if viewModel.isSearching {
+                HStack { Spacer(); ProgressView().tint(Color.nitroBlue); Spacer() }
+                    .frame(height: 200)
+            } else if viewModel.searchResults.isEmpty {
+                VStack(spacing: VelocitySpacing.md) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Color.onSurfaceVariant.opacity(0.5))
+                    Text("NO RESULTS")
+                        .font(.headlineMedium())
+                        .foregroundStyle(Color.onSurface)
+                    Text("Try a different coaster or park name")
+                        .font(.bodySmall())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, VelocitySpacing.xl)
+            } else {
+                ForEach(viewModel.searchResults) { ride in
+                    NavigationLink(destination: CoasterDetailView(rideId: ride.id)) {
+                        searchResultRow(ride: ride)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, VelocitySpacing.edgeMargin)
+    }
+
+    private func searchResultRow(ride: Ride) -> some View {
+        HStack(spacing: VelocitySpacing.md) {
+            // Thumbnail
+            RoundedRectangle(cornerRadius: VelocityRadius.component)
+                .fill(Color.velocitySurfaceContainerHighest)
+                .frame(width: 56, height: 56)
+                .overlay(
+                    CoasterImage(ride: ride)
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: VelocityRadius.component))
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(ride.name.uppercased())
+                    .font(.bodyLarge())
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.onSurface)
+                    .lineLimit(1)
+
+                if let park = ride.park {
+                    Text("\(park.displayName)\(park.state.map { ", \($0)" } ?? "")")
+                        .font(.labelCaps())
+                        .foregroundStyle(Color.onSurfaceVariant)
+                        .tracking(0.96)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            if let speed = ride.speed {
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("\(speed)")
+                        .font(.statValue())
+                        .foregroundStyle(Color.nitroBlue)
+                    Text("MPH")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Color.onSurfaceVariant)
+                }
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.onSurfaceVariant)
+        }
+        .padding(VelocitySpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: VelocityRadius.card)
+                .fill(Color.velocitySurfaceContainerLow.opacity(0.7))
+                .background(
+                    RoundedRectangle(cornerRadius: VelocityRadius.card)
+                        .fill(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: VelocityRadius.card)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Quick Action Card (gradient border)

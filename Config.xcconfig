@@ -11,4 +11,4 @@
 
 // **** NOTE **** Article explaining the auto version is https://medium.com/@mateuszsiatrak/automating-build-number-increments-in-xcode-with-custom-format-a-practical-guide-bcc90a19f716
 
-VERSION = 26.06.19
+VERSION = 26.06.21

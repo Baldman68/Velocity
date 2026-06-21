@@ -78,15 +78,47 @@ final class RideService {
             .value
     }
 
-    /// Search rides by name
+    /// Search rides by name or park name
     func searchRides(query: String, limit: Int = 20) async throws -> [Ride] {
-        try await client
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+
+        // Search rides by ride name
+        async let byRideName: [Ride] = client
             .from("ride")
             .select("*, park(*)")
-            .ilike("name", pattern: "%\(query)%")
+            .ilike("name", pattern: "%\(trimmed)%")
             .limit(limit)
             .execute()
             .value
+
+        // Search parks by name
+        async let matchingParks: [Park] = client
+            .from("park")
+            .select()
+            .ilike("name", pattern: "%\(trimmed)%")
+            .limit(5)
+            .execute()
+            .value
+
+        let (rideResults, parkResults) = try await (byRideName, matchingParks)
+
+        var allResults = rideResults
+
+        if !parkResults.isEmpty {
+            let parkIds = parkResults.map { String($0.id) }
+            let byPark: [Ride] = try await client
+                .from("ride")
+                .select("*, park(*)")
+                .in("parkId", values: parkIds)
+                .limit(limit)
+                .execute()
+                .value
+            allResults.append(contentsOf: byPark)
+        }
+
+        // Deduplicate by id
+        var seen = Set<Int64>()
+        return Array(allResults.filter { seen.insert($0.id).inserted }.prefix(limit))
     }
 
     /// Fetch a single ride with full details

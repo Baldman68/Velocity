@@ -28,6 +28,8 @@ final class DiscoverViewModel: NSObject, CLLocationManagerDelegate {
     var isLoadingNearby = false
     var isSearching = false
     var errorMessage: String?
+
+    private var searchTask: Task<Void, Never>?
     var nearestPark: Park?
     var nearestParkDistance: Double?
     var isLocationAuthorized = false
@@ -57,6 +59,24 @@ final class DiscoverViewModel: NSObject, CLLocationManagerDelegate {
 
         // Kick off nearby rides if we have location permission
         requestNearbyIfAuthorized()
+    }
+
+    func onSearchTextChanged() {
+        searchTask?.cancel()
+
+        let trimmed = searchText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            searchResults = []
+            isSearching = false
+            return
+        }
+
+        isSearching = true
+        searchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            await search()
+        }
     }
 
     func search() async {
