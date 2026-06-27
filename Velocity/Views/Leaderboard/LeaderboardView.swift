@@ -49,6 +49,17 @@ struct LeaderboardView: View {
                         .foregroundStyle(Color.nitroBlue)
                         .tracking(3)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if let url = URL(string: "https://www.micostechnologies.com/passport_suite_webview/index.html") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.nitroBlue)
+                    }
+                }
             }
             .toolbarBackground(Color.velocityBackground, for: .navigationBar)
             .task { await viewModel.loadLeaderboard() }

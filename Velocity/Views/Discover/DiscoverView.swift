@@ -94,6 +94,14 @@ struct DiscoverView: View {
                             } label: {
                                 Label("Suggest New Park", systemImage: "mappin.circle")
                             }
+                            Divider()
+                            Button {
+                                if let url = URL(string: "https://www.micostechnologies.com/passport_suite_webview/index.html") {
+                                    UIApplication.shared.open(url)
+                                }
+                            } label: {
+                                Label("More Apps", systemImage: "square.grid.2x2")
+                            }
                         } label: {
                             Image(systemName: "ellipsis.circle")
                                 .font(.system(size: 18))
